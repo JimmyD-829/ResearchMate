@@ -1,8 +1,14 @@
-name = "researchmate-frontend"
-type = "nextjs"
+#:schema node_modules/wrangler/config-schema.json
+name = "researchmate"
+compatibility_date = "2024-01-01"
+pages_build_output_dir = ".next"
 
-[build]
-command = "npm run build"
+[vars]
+  # Add your environment variables here, e.g.
+  # API_URL = "https://your-api-url.com"
 
-[env]
-API_URL = "http://localhost:8000"
+[vars.preview]
+  API_URL = "http://localhost:8000"
+
+# Uncomment to enable 2.0 routing
+# send_metrics = false

@@ -1,39 +1,45 @@
 # Changelog
 
-## [Unreleased] - Next
+## [1.1.0] - 2024-05-21 (UI优化发布)
 
-### 规划中的功能
-- [ ] UI优化：便当网格2.0布局，卡片式模块展示
-- [ ] 深色模式优先，支持深色/浅色模式切换
-- [ ] 进度可视化：财报分析过程显示进度条
-- [ ] 结果结构化展示：关键指标卡片/表格展示
-- [ ] 合规提示：AI生成标识、风险提示
-- [ ] PDF不保留原始文件
-- [ ] 首次使用服务条款确认
+### ✨ 新功能
+- **深色模式优先设计，支持一键切换
+- **便当网格2.0布局，卡片式模块组织
+- **财报解析进度可视化（上传/解析/分析三个阶段）
+- **合规提示：AI标识+风险提示组件
+- **响应式移动端适配
+- **Cloudflare Pages自动部署配置
+- **GitHub Actions CI/CD配置
+### 📝 文档更新
+- 更新PRD.md：添加竞品分析、UI设计规范
+- 更新tech_architecture.md：添加完整API接口文档
+- 新增VERSION_PLAN.md：版本规划与路线图
+- 更新CHANGELOG.md
+- 更新README.md
+- 更新feature_overview.md
 
+## [1.0.0] - 2024-05-21 (MVP发布)
+
+### ✨ 基础功能
+- **财报智能解读：PDF上传解析、AI摘要生成
+- **新闻聚合：关注列表管理、NewsAPI集成
+- **情绪分析：SnowNLP情感分析、趋势图展示
+- **用户认证：注册/登录/JWT Token
+### 📁 项目文件
+- `backend/`: FastAPI后端
+- `frontend/`: Next.js前端
+- `PRD.md`: 产品需求文档
+- `feature_overview.md`: 功能全景图
+- `tech_architecture.md`: 技术架构文档
+- `README.md`: 项目说明
+- `CHANGELOG.md`: 变更日志
+- `VERSION_PLAN.md`: 版本规划
 ---
-
-## [v1.0.0] - 2026-05-21
-
-### Added
-- ✅ **财报智能解读模块**：PDF上传解析、关键指标提取、AI摘要生成
-- ✅ **市场新闻聚合模块**：关注列表管理、NewsAPI集成、资讯聚合展示
-- ✅ **情绪指标分析模块**：SnowNLP情感分析、趋势图展示、情绪旗帜标识
-- ✅ **用户认证模块**：注册/登录、JWT认证、密码加密
-- ✅ **基础架构**：FastAPI后端、Next.js前端、PostgreSQL支持
-- ✅ **文档**：PRD.md、feature_overview.md、tech_architecture.md、README.md
-
-### Technical
-- 后端：FastAPI + SQLAlchemy + SQLite/PostgreSQL
-- 前端：Next.js 14 + TailwindCSS 3 + Chart.js
-- 支持本地开发环境快速启动
-
----
-
 ## 文档更新历史
 
-### 2026-05-21
-- 📝 根据竞品分析更新 PRD，重新定位为"个人投资者的财报解读第一站"
-- 📝 新增 VERSION_PLAN.md 版本计划与路线图
-- 📝 补充竞品分析、UI/UX设计规范、合规设计要点
-- 📝 版本规划：v1.0（UI+合规）、v1.1（AI交互）、v1.2（多Agent）
+### 2024-05-21
+- 竞品分析整合进PRD
+- UI设计规范（便当网格+深色模式
+- 合规设计要点
+- 完整API接口文档
+- GitHub Actions+Cloudflare Pages部署配置
