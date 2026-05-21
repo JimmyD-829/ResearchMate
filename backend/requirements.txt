@@ -1,0 +1,15 @@
+fastapi==0.110.0
+uvicorn==0.29.0
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+pydantic==2.6.1
+sqlalchemy==2.0.27
+psycopg2-binary==2.9.9
+python-dotenv==1.0.0
+pymupdf==1.23.10
+openai==1.13.3
+newspaper3k==0.2.8
+snownlp==0.12.3
+celery==5.3.6
+redis==5.0.1
+aiofiles==23.2.1
