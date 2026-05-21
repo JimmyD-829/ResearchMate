@@ -1,0 +1,8 @@
+name = "researchmate-frontend"
+type = "nextjs"
+
+[build]
+command = "npm run build"
+
+[env]
+API_URL = "http://localhost:8000"

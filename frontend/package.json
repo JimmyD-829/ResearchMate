@@ -24,7 +24,6 @@
     "typescript": "^5"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.0.0",
     "eslint": "^8",
     "eslint-config-next": "^14.0.0"
   }
