@@ -3,7 +3,6 @@ name: Deploy to Cloudflare Pages
 on:
   push:
     branches: [ main, master ]
-
   workflow_dispatch:
 
 jobs:
@@ -25,17 +24,27 @@ jobs:
         working-directory: frontend
         run: npm ci
 
-      - name: Build
+      - name: Build Next.js Static Export
         working-directory: frontend
-        run: npm run build
+        run: |
+          # Check if we need to install Wrangler for Cloudflare Pages Functions
+          npm install -g wrangler@latest
+          npm run build
         env:
           API_URL: ${{ secrets.API_URL }}
 
-      - name: Deploy to Cloudflare Pages
-        uses: cloudflare/pages-action@v1
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: researchmate
-          directory: frontend/.next
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+      - name: Setup Wrangler
+        working-directory: frontend
+        run: |
+          cat > wrangler.toml << 'EOF'
+name = "researchmate"
+compatibility_date = "2024-01-01"
+pages_build_output_dir = ".next"
+EOF
+
+      - name: Deploy to Cloudflare Pages (Manual with Wrangler)
+        working-directory: frontend
+        run: npx wrangler pages deploy .next --project-name researchmate --branch master
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
