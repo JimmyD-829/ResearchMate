@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Layout from '../components/Layout';
+import { fetchApi } from '../utils/api';
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -34,26 +35,16 @@ export default function ResetPasswordPage() {
     setMessage('');
 
     try {
-      const response = await fetch('/api/auth/reset-password', {
+      const data = await fetchApi('/api/auth/reset-password', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ token, new_password: newPassword }),
       });
-
-      if (response.ok) {
-        const data = await response.json();
-        setMessage(data.message);
-        setTimeout(() => {
-          router.push('/login');
-        }, 2000);
-      } else {
-        const error = await response.json();
-        setMessage(error.detail || '重置失败');
-      }
+      setMessage(data.message);
+      setTimeout(() => {
+        router.push('/login');
+      }, 2000);
     } catch (error) {
-      setMessage('网络错误，请稍后重试');
+      setMessage(error instanceof Error ? error.message : '重置失败');
     } finally {
       setIsLoading(false);
     }

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Layout from '../components/Layout';
+import { fetchApi } from '../utils/api';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -15,24 +16,14 @@ export default function ForgotPasswordPage() {
     setMessage('');
 
     try {
-      const response = await fetch('/api/auth/forgot-password', {
+      const data = await fetchApi('/api/auth/forgot-password', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ email }),
       });
-
-      if (response.ok) {
-        const data = await response.json();
-        setMessage(data.message);
-        console.log('重置链接:', data.reset_link);
-      } else {
-        const error = await response.json();
-        setMessage(error.detail || '发送失败');
-      }
+      setMessage(data.message);
+      console.log('重置链接:', data.reset_link);
     } catch (error) {
-      setMessage('网络错误，请稍后重试');
+      setMessage(error instanceof Error ? error.message : '发送失败');
     } finally {
       setIsLoading(false);
     }
