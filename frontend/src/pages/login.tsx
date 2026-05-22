@@ -32,6 +32,14 @@ export default function LoginPage() {
     <Layout>
       <div className="min-h-[70vh] flex items-center justify-center">
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-10 w-full max-w-md border border-gray-200 dark:border-gray-700">
+          <div className="mb-6">
+            <Link href="/" className="inline-flex items-center text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+              <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              返回首页
+            </Link>
+          </div>
           <div className="text-center mb-10">
             <div className="inline-flex items-center justify-center w-20 h-20 bg-primary-100 dark:bg-primary-900/30 rounded-2xl mb-6">
               <span className="text-4xl">📊</span>
