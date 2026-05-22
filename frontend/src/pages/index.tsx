@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { useAuth } from '../context/AuthContext';
 import ComplianceNote from '../components/ComplianceNote';
+import Layout from '../components/Layout';
 
 export default function HomePage() {
   const { user } = useAuth();
