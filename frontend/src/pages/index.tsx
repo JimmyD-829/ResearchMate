@@ -52,13 +52,13 @@ export default function HomePage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
         {features.map((feature) => (
           <Link key={feature.title} href={feature.link}>
-            <div className="group h-full bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 hover:shadow-xl hover:shadow-primary-500/5 transition-all duration-300 cursor-pointer flex flex-col">
+            <div className="group h-full min-h-[260px] bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 hover:shadow-xl hover:shadow-primary-500/5 transition-all duration-300 cursor-pointer flex flex-col">
               <div className="flex items-start gap-4 flex-1">
                 <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-primary-500 to-blue-600 rounded-xl flex items-center justify-center">
                   <span className="text-xl">{feature.icon}</span>
                 </div>
-                <div className="flex-1 min-w-0 flex flex-col justify-between">
-                  <div>
+                <div className="flex-1 min-w-0 flex flex-col">
+                  <div className="flex-1">
                     <h3 className="font-semibold text-gray-900 dark:text-white mb-2 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
                       {feature.title}
                     </h3>
