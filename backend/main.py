@@ -7,6 +7,7 @@ from app.routes.auth import router as auth_router
 from app.routes.reports import router as reports_router
 from app.routes.news import router as news_router
 from app.routes.emotion import router as emotion_router
+from app.routes.analysis import router as analysis_router
 
 load_dotenv()
 
@@ -26,6 +27,7 @@ app.include_router(auth_router)
 app.include_router(reports_router)
 app.include_router(news_router)
 app.include_router(emotion_router)
+app.include_router(analysis_router)
 
 @app.get("/")
 async def root():

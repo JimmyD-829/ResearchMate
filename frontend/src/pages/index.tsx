@@ -1,10 +1,48 @@
 import Link from 'next/link';
+import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import ComplianceNote from '../components/ComplianceNote';
 import Layout from '../components/Layout';
 
 export default function HomePage() {
   const { user } = useAuth();
+  const [query, setQuery] = useState('');
+  const [searchResult, setSearchResult] = useState<string | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!query.trim()) return;
+    if (!user) {
+      alert('请先登录以使用智能搜索功能');
+      return;
+    }
+
+    setIsSearching(true);
+    setSearchResult(null);
+
+    try {
+      const response = await fetch('/api/analysis/natural-query', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query }),
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setSearchResult(data.data.result || JSON.stringify(data.data, null, 2));
+      } else {
+        setSearchResult('搜索失败，请稍后重试');
+      }
+    } catch (error) {
+      setSearchResult('网络错误，请稍后重试');
+    } finally {
+      setIsSearching(false);
+    }
+  };
 
   const features = [
     {
@@ -48,6 +86,46 @@ export default function HomePage() {
       </div>
 
       <ComplianceNote />
+
+      <div className="max-w-2xl mx-auto mb-12">
+        <form onSubmit={handleSearch} className="relative">
+          <div className="relative">
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="输入自然语言查询，例如：分析贵州茅台财报、贵州茅台 2024年营收是多少..."
+              className="w-full px-5 py-4 pl-12 pr-24 text-gray-900 dark:text-white bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-2xl shadow-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-300"
+            />
+            <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <button
+              type="submit"
+              disabled={isSearching}
+              className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-2 bg-gradient-to-r from-primary-600 to-blue-600 hover:from-primary-500 hover:to-blue-500 text-white font-medium rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSearching ? (
+                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              ) : (
+                '查询'
+              )}
+            </button>
+          </div>
+        </form>
+        
+        {searchResult && (
+          <div className="mt-6 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
+            <h3 className="font-semibold text-gray-900 dark:text-white mb-3">AI 分析结果</h3>
+            <div className="text-gray-600 dark:text-gray-300 whitespace-pre-wrap leading-relaxed text-sm">
+              {searchResult}
+            </div>
+          </div>
+        )}
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
         {features.map((feature) => (

@@ -26,11 +26,17 @@ export default function Layout({ children }: LayoutProps) {
               <Link href="/reports" className="text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400">
                 财报解析
               </Link>
+              <Link href="/compare" className="text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400">
+                财报对比
+              </Link>
               <Link href="/news" className="text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400">
                 新闻聚合
               </Link>
               <Link href="/emotion" className="text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400">
                 情绪分析
+              </Link>
+              <Link href="/benchmark" className="text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400">
+                行业对标
               </Link>
 
               <ThemeToggle />
