@@ -134,30 +134,30 @@ export default function BenchmarkPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {Object.entries(benchmarkResult.benchmark_data).map(([key, value]) => (
-                        <tr key={key} className="border-b border-gray-100 dark:border-gray-700/50">
-                          <td className="py-3 px-4 text-gray-900 dark:text-white">{key}</td>
-                          <td className="py-3 px-4 text-right text-gray-600 dark:text-gray-400">
-                            {typeof value === 'object' && value.industry_avg !== undefined ? value.industry_avg : '-'}
-                          </td>
-                          <td className="py-3 px-4 text-right text-gray-600 dark:text-gray-400">
-                            {typeof value === 'object' && value.company_value !== undefined ? value.company_value : '-'}
-                          </td>
-                          <td className="py-3 px-4 text-center">
-                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
-                              typeof value === 'object' && value.rating === '优秀'
-                                ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                                : typeof value === 'object' && value.rating === '良好'
-                                ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
-                                : typeof value === 'object' && value.rating === '一般'
-                                ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
-                                : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
-                            }`}>
-                              {typeof value === 'object' && value.rating !== undefined ? value.rating : '-'}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
+                      {Object.entries(benchmarkResult.benchmark_data).map(([key, value]) => {
+                        const isObject = typeof value === 'object' && value !== null;
+                        const industryAvg = isObject && 'industry_avg' in value ? String(value.industry_avg) : '-';
+                        const companyValue = isObject && 'company_value' in value ? String(value.company_value) : '-';
+                        const rating = isObject && 'rating' in value ? String(value.rating) : '-';
+                        
+                        let ratingClass = 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400';
+                        if (rating === '优秀') ratingClass = 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400';
+                        else if (rating === '良好') ratingClass = 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400';
+                        else if (rating === '一般') ratingClass = 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400';
+                        
+                        return (
+                          <tr key={key} className="border-b border-gray-100 dark:border-gray-700/50">
+                            <td className="py-3 px-4 text-gray-900 dark:text-white">{key}</td>
+                            <td className="py-3 px-4 text-right text-gray-600 dark:text-gray-400">{industryAvg}</td>
+                            <td className="py-3 px-4 text-right text-gray-600 dark:text-gray-400">{companyValue}</td>
+                            <td className="py-3 px-4 text-center">
+                              <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${ratingClass}`}>
+                                {rating}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
