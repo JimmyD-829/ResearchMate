@@ -88,7 +88,13 @@ export default function LoginPage() {
             </button>
           </form>
           
-          <p className="mt-8 text-center text-gray-600 dark:text-gray-400 text-sm">
+          <p className="mt-4 text-center">
+            <Link href="/forgot-password" className="text-sm text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400">
+              忘记密码？
+            </Link>
+          </p>
+          
+          <p className="mt-4 text-center text-gray-600 dark:text-gray-400 text-sm">
             还没有账户？{' '}
             <Link href="/register" className="text-primary-600 dark:text-primary-400 font-semibold hover:underline">
               立即注册

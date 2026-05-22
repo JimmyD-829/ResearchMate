@@ -2,11 +2,19 @@ from fastapi import APIRouter, Depends, HTTPException, status, Header
 from sqlalchemy.orm import Session
 from ..schemas.user import UserCreate, UserLogin, UserResponse, Token
 from ..services.user_service import UserService
-from ..utils.auth import create_access_token, SECRET_KEY, ALGORITHM
+from ..utils.auth import create_access_token, SECRET_KEY, ALGORITHM, create_password_reset_token, verify_password_reset_token
 from ..database import get_db
 from jose import JWTError, jwt
+from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
 
 def get_token(authorization: str = Header(None)):
     if authorization is None:
@@ -54,3 +62,32 @@ def get_current_user(token: str = Depends(get_token), db: Session = Depends(get_
     if user is None:
         raise credentials_exception
     return user
+
+@router.post("/forgot-password")
+def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    user = UserService.get_user_by_email(db, request.email)
+    if not user:
+        raise HTTPException(status_code=404, detail="用户不存在")
+    
+    reset_token = create_password_reset_token(user.id)
+    reset_link = f"http://localhost:3000/reset-password?token={reset_token}"
+    
+    print(f"密码重置链接: {reset_link}")
+    print(f"发送到邮箱: {user.email}")
+    
+    return {"message": "密码重置链接已发送到您的邮箱", "reset_link": reset_link}
+
+@router.post("/reset-password")
+def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db)):
+    try:
+        user_id = verify_password_reset_token(request.token)
+        if not user_id:
+            raise HTTPException(status_code=400, detail="无效或过期的重置链接")
+        
+        success = UserService.update_password(db, user_id, request.new_password)
+        if not success:
+            raise HTTPException(status_code=500, detail="密码更新失败")
+        
+        return {"message": "密码重置成功"}
+    except JWTError:
+        raise HTTPException(status_code=400, detail="无效或过期的重置链接")
