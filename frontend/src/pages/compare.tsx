@@ -187,16 +187,19 @@ export default function ComparePage() {
               <div className="mb-6">
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">增长率对比</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {Object.entries(comparisonResult.growth_rates).map(([key, value]) => (
-                    <div key={key} className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4">
-                      <p className="text-sm text-gray-500 dark:text-gray-400">{key}</p>
-                      <p className={`text-xl font-bold ${
-                        typeof value === 'string' && value.includes('-') ? 'text-red-500' : 'text-green-500'
-                      }`}>
-                        {value}
-                      </p>
-                    </div>
-                  ))}
+                  {Object.entries(comparisonResult.growth_rates).map(([key, value]) => {
+                    const displayValue = String(value);
+                    return (
+                      <div key={key} className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4">
+                        <p className="text-sm text-gray-500 dark:text-gray-400">{key}</p>
+                        <p className={`text-xl font-bold ${
+                          displayValue.includes('-') ? 'text-red-500' : 'text-green-500'
+                        }`}>
+                          {displayValue}
+                        </p>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
