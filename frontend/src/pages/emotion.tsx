@@ -146,34 +146,32 @@ export default function EmotionPage() {
   return (
     <Layout>
       <div className="max-w-6xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-800 dark:text-white">情绪指标分析</h1>
-            <p className="text-gray-500 dark:text-gray-400 mt-1">跟踪市场情绪变化，辅助投资决策</p>
-          </div>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">情绪指标分析</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">跟踪市场情绪变化，辅助投资决策</p>
         </div>
 
         <ComplianceNote />
 
         <div className="grid md:grid-cols-4 gap-6">
           <div className="md:col-span-1">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-100 dark:border-gray-700">
-              <h2 className="text-lg font-semibold text-gray-500 dark:text-gray-400 mb-4">选择公司</h2>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">选择公司</h2>
               {follows.length === 0 ? (
-                <p className="text-sm text-gray-500 dark:text-gray-400">暂无关注公司</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">暂无关注公司</p>
               ) : (
                 <div className="space-y-2">
                   {follows.map((follow) => (
                     <button
                       key={follow.id}
                       onClick={() => setSelectedCompany(follow.company_name)}
-                      className={`w-full text-left p-3 rounded-lg transition-colors ${
+                      className={`w-full text-left p-4 rounded-xl transition-colors ${
                         selectedCompany === follow.company_name
                           ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400'
                           : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
                       }`}
                     >
-                      <p className="font-medium">{follow.company_name}</p>
+                      <p className="font-semibold">{follow.company_name}</p>
                       {follow.stock_code && (
                         <p className="text-xs text-gray-500 dark:text-gray-400">{follow.stock_code}</p>
                       )}
@@ -186,51 +184,51 @@ export default function EmotionPage() {
 
           <div className="md:col-span-3 space-y-6">
             {loading ? (
-              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-16 text-center border border-gray-100 dark:border-gray-700">
-                <div className="animate-spin rounded-full h-10 w-10 border-4 border-primary-400 border-t-transparent mx-auto" />
-                <p className="mt-4 text-gray-500 dark:text-gray-400">加载中...</p>
+              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-16 text-center">
+                <div className="animate-spin rounded-full h-10 w-10 border-2 border-primary-500 border-t-transparent mx-auto" />
+                <p className="mt-4 text-gray-600 dark:text-gray-400">加载中...</p>
               </div>
             ) : emotionScore && emotionTrend ? (
               <>
-                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 border border-gray-100 dark:border-gray-700">
+                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-8">
                   <div className="flex items-center justify-between mb-8">
                     <div>
-                      <h2 className="text-2xl font-semibold text-gray-800 dark:text-white">{selectedCompany}</h2>
-                      <div className="flex items-center gap-3 mt-2">
-                        <span className="text-4xl">{getEmotionIcon(emotionScore.current_label)}</span>
+                      <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{selectedCompany}</h2>
+                      <div className="flex items-center gap-3 mt-3">
+                        <span className="text-5xl">{getEmotionIcon(emotionScore.current_label)}</span>
                         <span className={`font-bold text-4xl ${getEmotionTextColor(emotionScore.current_score)}`}>
                           {emotionScore.current_score.toFixed(1)}
                         </span>
-                        <span className="text-gray-500 dark:text-gray-400">分</span>
+                        <span className="text-gray-500 dark:text-gray-400 text-lg">分</span>
                       </div>
                     </div>
-                    <div className={`px-5 py-2.5 rounded-xl ${
+                    <div className={`px-6 py-3 rounded-xl ${
                       emotionScore.current_score > 20 ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' :
                       emotionScore.current_score < -20 ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' :
                       'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-400'
                     }`}>
-                      <p className="font-bold text-lg">
+                      <p className="font-bold text-xl">
                         {emotionScore.current_label === 'positive' ? '积极' :
                          emotionScore.current_label === 'negative' ? '消极' : '中性'}
                       </p>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-5 text-center">
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">近7日平均</p>
-                      <p className={`text-2xl font-bold ${getEmotionTextColor(emotionScore.last_7d_avg)}`}>
+                  <div className="grid grid-cols-3 gap-5">
+                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-5 text-center">
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">近7日平均</p>
+                      <p className={`text-3xl font-bold ${getEmotionTextColor(emotionScore.last_7d_avg)}`}>
                         {emotionScore.last_7d_avg.toFixed(1)}
                       </p>
                     </div>
-                    <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-5 text-center">
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">近30日平均</p>
-                      <p className={`text-2xl font-bold ${getEmotionTextColor(emotionScore.last_30d_avg)}`}>
+                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-5 text-center">
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">近30日平均</p>
+                      <p className={`text-3xl font-bold ${getEmotionTextColor(emotionScore.last_30d_avg)}`}>
                         {emotionScore.last_30d_avg.toFixed(1)}
                       </p>
                     </div>
-                    <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-5 text-center">
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">趋势判断</p>
+                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-5 text-center">
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">趋势判断</p>
                       <p className={`text-2xl font-bold ${
                         emotionScore.current_score > emotionScore.last_7d_avg
                           ? 'text-green-600 dark:text-green-400'
@@ -245,17 +243,17 @@ export default function EmotionPage() {
                   </div>
                 </div>
 
-                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 border border-gray-100 dark:border-gray-700">
-                  <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-6">📈 近30天情绪趋势</h2>
-                  <div className="h-72">
+                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-8">
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">📈 近30天情绪趋势</h2>
+                  <div className="h-80">
                     <LineChart data={lineChartData} options={chartOptions} />
                   </div>
                 </div>
               </>
             ) : (
-              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-16 text-center border border-gray-100 dark:border-gray-700">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-16 text-center">
                 <span className="text-5xl">📈</span>
-                <p className="mt-4 text-gray-500 dark:text-gray-400">暂无情绪数据</p>
+                <p className="mt-4 text-gray-600 dark:text-gray-400">暂无情绪数据</p>
               </div>
             )}
           </div>
