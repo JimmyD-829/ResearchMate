@@ -18,7 +18,7 @@ class FinancialReportResponse(BaseModel):
     upload_time: datetime
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 class FinancialReportUpdate(BaseModel):
     company_name: Optional[str] = None
