@@ -5,16 +5,14 @@ from ..services.user_service import UserService
 from ..utils.auth import create_access_token, SECRET_KEY, ALGORITHM, create_password_reset_token, verify_password_reset_token
 from ..database import get_db
 from jose import JWTError, jwt
-from dataclasses import dataclass
+from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
-@dataclass
-class ForgotPasswordRequest:
+class ForgotPasswordRequest(BaseModel):
     email: str
 
-@dataclass
-class ResetPasswordRequest:
+class ResetPasswordRequest(BaseModel):
     token: str
     new_password: str
 

@@ -1,9 +1,8 @@
-from dataclasses import dataclass
+from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional, List
 
-@dataclass
-class NewsArticleResponse:
+class NewsArticleResponse(BaseModel):
     id: str
     company_name: str
     title: str
@@ -14,7 +13,9 @@ class NewsArticleResponse:
     emotion_label: Optional[str]
     created_at: datetime
 
-@dataclass
-class NewsListResponse:
+    class Config:
+        orm_mode = True
+
+class NewsListResponse(BaseModel):
     total: int
     items: List[NewsArticleResponse]

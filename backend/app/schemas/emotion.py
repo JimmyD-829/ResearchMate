@@ -1,22 +1,19 @@
-from dataclasses import dataclass
+from pydantic import BaseModel
 from datetime import date, datetime
 from typing import Optional, List
 
-@dataclass
-class EmotionScoreResponse:
+class EmotionScoreResponse(BaseModel):
     company_name: str
     current_score: float
     current_label: str
     last_7d_avg: float
     last_30d_avg: float
 
-@dataclass
-class EmotionTrendData:
+class EmotionTrendData(BaseModel):
     date: date
     daily_score: float
     article_count: int
 
-@dataclass
-class EmotionTrendResponse:
+class EmotionTrendResponse(BaseModel):
     company_name: str
     trend: List[EmotionTrendData]

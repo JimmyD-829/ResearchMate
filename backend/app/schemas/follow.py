@@ -1,16 +1,17 @@
-from dataclasses import dataclass
+from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional
 
-@dataclass
-class FollowCreate:
+class FollowCreate(BaseModel):
     company_name: str
     stock_code: Optional[str] = None
 
-@dataclass
-class FollowResponse:
+class FollowResponse(BaseModel):
     id: str
     user_id: str
     company_name: str
     stock_code: Optional[str]
     created_at: datetime
+
+    class Config:
+        orm_mode = True
