@@ -13,6 +13,7 @@ dependencies = [
     "PyPDF2>=2.0.0",
     "aiofiles>=23.0.0",
     "pyjwt>=2.0.0",
+    "email-validator>=2.0.0",
 ]
 
 [tool.setuptools.packages.find]
