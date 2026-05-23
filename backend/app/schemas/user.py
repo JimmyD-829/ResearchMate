@@ -1,29 +1,31 @@
-from pydantic import BaseModel, EmailStr
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
 
-class UserCreate(BaseModel):
-    email: EmailStr
+@dataclass
+class UserCreate:
+    email: str
     password: str
     nickname: str
 
-class UserLogin(BaseModel):
-    email: EmailStr
+@dataclass
+class UserLogin:
+    email: str
     password: str
 
-class UserResponse(BaseModel):
+@dataclass
+class UserResponse:
     id: str
-    email: EmailStr
+    email: str
     nickname: str
     created_at: datetime
     last_login: Optional[datetime]
 
-    class Config:
-        orm_mode = True
-
-class Token(BaseModel):
+@dataclass
+class Token:
     access_token: str
     token_type: str
 
-class TokenData(BaseModel):
+@dataclass
+class TokenData:
     user_id: Optional[str] = None

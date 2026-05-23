@@ -3,18 +3,21 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..services.analysis_service import AnalysisService
 from ..utils.auth import get_current_user
-from pydantic import BaseModel
+from dataclasses import dataclass
 from typing import List
 
 router = APIRouter(prefix="/api/analysis", tags=["analysis"])
 
-class NaturalQueryRequest(BaseModel):
+@dataclass
+class NaturalQueryRequest:
     query: str
 
-class ReportCompareRequest(BaseModel):
+@dataclass
+class ReportCompareRequest:
     report_ids: List[str]
 
-class IndustryBenchmarkRequest(BaseModel):
+@dataclass
+class IndustryBenchmarkRequest:
     company_name: str
 
 @router.post("/natural-query")

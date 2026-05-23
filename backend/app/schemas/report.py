@@ -1,8 +1,9 @@
-from pydantic import BaseModel
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
 
-class FinancialReportResponse(BaseModel):
+@dataclass
+class FinancialReportResponse:
     id: str
     user_id: str
     company_name: str
@@ -17,10 +18,8 @@ class FinancialReportResponse(BaseModel):
     status: str
     upload_time: datetime
 
-    class Config:
-        orm_mode = True
-
-class FinancialReportUpdate(BaseModel):
+@dataclass
+class FinancialReportUpdate:
     company_name: Optional[str] = None
     stock_code: Optional[str] = None
     report_period: Optional[datetime] = None
