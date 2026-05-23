@@ -11,3 +11,7 @@ services:
         sync: false
       - key: SECRET_KEY
         sync: false
+    plan: starter
+    numInstances: 1
+    runtime: python
+    region: oregon
