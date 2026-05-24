@@ -26,7 +26,8 @@ export default function BenchmarkPage() {
         company_name: companyName
       });
 
-      setBenchmarkResult(response.data);
+      const resultData = response.data?.data || response.data;
+      setBenchmarkResult(resultData);
     } catch (error: any) {
       console.error('Benchmark error:', error);
       const errorMessage = error.response?.data?.detail || error.message || '请稍后重试';

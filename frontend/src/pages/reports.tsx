@@ -31,7 +31,8 @@ export default function ReportsPage() {
     setLoading(true);
     try {
       const response = await reportApi.getAll();
-      setReports(response.data);
+      const reportsData = response.data?.data || response.data;
+      setReports(Array.isArray(reportsData) ? reportsData : []);
     } catch (err) {
       setError('获取财报列表失败');
     } finally {

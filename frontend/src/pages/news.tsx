@@ -27,7 +27,8 @@ export default function NewsPage() {
   const fetchFollows = async () => {
     try {
       const response = await newsApi.getFollows();
-      setFollows(response.data);
+      const followsData = response.data?.data || response.data;
+      setFollows(Array.isArray(followsData) ? followsData : []);
     } catch (err) {
       console.error('获取关注列表失败');
     }
@@ -38,7 +39,8 @@ export default function NewsPage() {
     try {
       const params = company ? { company_name: company } : undefined;
       const response = await newsApi.getNews(params);
-      setNews(response.data.items);
+      const newsData = response.data?.data || response.data;
+      setNews(newsData?.items || []);
       setFilterCompany(company || null);
     } catch (err) {
       console.error('获取新闻失败');

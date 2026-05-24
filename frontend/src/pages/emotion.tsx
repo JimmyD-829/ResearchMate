@@ -53,9 +53,10 @@ export default function EmotionPage() {
   const fetchFollows = async () => {
     try {
       const response = await newsApi.getFollows();
-      setFollows(response.data);
-      if (response.data.length > 0) {
-        setSelectedCompany(response.data[0].company_name);
+      const followsData = response.data?.data || response.data;
+      setFollows(Array.isArray(followsData) ? followsData : []);
+      if (Array.isArray(followsData) && followsData.length > 0) {
+        setSelectedCompany(followsData[0].company_name);
       }
     } catch (err) {
       console.error('获取关注列表失败');
@@ -69,8 +70,8 @@ export default function EmotionPage() {
         emotionApi.getScore(company),
         emotionApi.getTrend(company, 30),
       ]);
-      setEmotionScore(scoreResponse.data);
-      setEmotionTrend(trendResponse.data);
+      setEmotionScore(scoreResponse.data?.data || scoreResponse.data);
+      setEmotionTrend(trendResponse.data?.data || trendResponse.data);
     } catch (err) {
       console.error('获取情绪数据失败');
     } finally {
