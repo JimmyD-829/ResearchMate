@@ -37,15 +37,25 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
     user = UserService.create_user(db, user_data)
     return user
 
-@router.post("/login", response_model=Token)
+@router.post("/login")
 def login(login_data: UserLogin, db: Session = Depends(get_db)):
     user = UserService.authenticate_user(db, login_data.email, login_data.password)
     if not user:
         raise HTTPException(status_code=401, detail="Incorrect email or password")
-    
+
     UserService.update_last_login(db, user.id)
     access_token = create_access_token(data={"sub": user.id})
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": {
+            "id": user.id,
+            "email": user.email,
+            "nickname": user.nickname,
+            "created_at": user.created_at.isoformat() if user.created_at else None,
+            "last_login": user.last_login.isoformat() if user.last_login else None
+        }
+    }
 
 @router.get("/me", response_model=UserResponse)
 def get_current_user(token: str = Depends(get_token), db: Session = Depends(get_db)):
