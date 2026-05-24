@@ -4,6 +4,10 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://researchmate-aznu.on
 
 const api = axios.create({
   baseURL: API_URL,
+  timeout: 30000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
 });
 
 api.interceptors.request.use((config) => {
