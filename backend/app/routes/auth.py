@@ -8,6 +8,9 @@ from ..database import get_db
 from jose import JWTError, jwt
 from pydantic import BaseModel
 import asyncio
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -86,12 +89,19 @@ async def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(
                 "email_sent": True
             }
         else:
-            print(f"邮件发送失败: {email_result.get('message')}")
+            logger.error(f"邮件发送失败详情: {email_result}")
+            print(f"❌ 邮件发送失败: {email_result.get('message')}")
+            print(f"❌ 错误类型: {email_result.get('error_type', 'unknown')}")
             print(f"备用重置链接: {reset_link}")
             return {
-                "message": "如果该邮箱已注册，重置链接将发送到您的邮箱（邮件服务暂时不可用）",
+                "message": f"如果该邮箱已注册，重置链接将发送到您的邮箱（邮件服务错误: {email_result.get('message', 'unknown')}）",
                 "email": request.email,
-                "email_sent": False
+                "email_sent": False,
+                "debug_info": {
+                    "error_message": email_result.get('message'),
+                    "has_api_key": bool(email_service.api_key),
+                    "from_email": email_service.from_email
+                }
             }
     else:
         return {"message": "如果该邮箱已注册，重置链接将发送到您的邮箱", "email": request.email}
