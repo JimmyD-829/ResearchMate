@@ -17,10 +17,10 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",
         "http://127.0.0.1:3000",
-        "https://researchmate-aznu.onrender.com",
-        "https://researchmate-frontend.onrender.com"
+        "https://researchmate.pages.dev",
+        "https://researchmate-aznu.onrender.com"
     ],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
