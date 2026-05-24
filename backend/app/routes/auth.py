@@ -66,16 +66,17 @@ def get_current_user(token: str = Depends(get_token), db: Session = Depends(get_
 @router.post("/forgot-password")
 def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(get_db)):
     user = UserService.get_user_by_email(db, request.email)
-    if not user:
-        raise HTTPException(status_code=404, detail="用户不存在")
     
-    reset_token = create_password_reset_token(user.id)
-    reset_link = f"http://localhost:3000/reset-password?token={reset_token}"
-    
-    print(f"密码重置链接: {reset_link}")
-    print(f"发送到邮箱: {user.email}")
-    
-    return {"message": "密码重置链接已发送到您的邮箱", "reset_link": reset_link}
+    if user:
+        reset_token = create_password_reset_token(user.id)
+        reset_link = f"https://researchmate-aznu.onrender.com/reset-password?token={reset_token}"
+        
+        print(f"密码重置链接: {reset_link}")
+        print(f"发送到邮箱: {user.email}")
+        
+        return {"message": "如果该邮箱已注册，重置链接将发送到您的邮箱", "email": request.email}
+    else:
+        return {"message": "如果该邮箱已注册，重置链接将发送到您的邮箱", "email": request.email}
 
 @router.post("/reset-password")
 def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db)):
