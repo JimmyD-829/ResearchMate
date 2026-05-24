@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import api from '../services/api';
 import ComplianceNote from '../components/ComplianceNote';
 import Layout from '../components/Layout';
 
@@ -22,22 +23,10 @@ export default function HomePage() {
     setSearchResult(null);
 
     try {
-      const response = await fetch('/api/analysis/natural-query', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ query }),
-        credentials: 'include',
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setSearchResult(data.data.result || JSON.stringify(data.data, null, 2));
-      } else {
-        setSearchResult('搜索失败，请稍后重试');
-      }
+      const response = await api.post('/api/analysis/natural-query', { query });
+      setSearchResult(response.data?.data?.result || JSON.stringify(response.data?.data, null, 2));
     } catch (error) {
+      console.error('Search error:', error);
       setSearchResult('网络错误，请稍后重试');
     } finally {
       setIsSearching(false);

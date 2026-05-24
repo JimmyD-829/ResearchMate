@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import api from '../services/api';
 import Layout from '../components/Layout';
 import ComplianceNote from '../components/ComplianceNote';
 
@@ -24,13 +25,8 @@ export default function ComparePage() {
 
   const fetchReports = async () => {
     try {
-      const response = await fetch('/api/reports', {
-        credentials: 'include',
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setReports(data.data || []);
-      }
+      const response = await api.get('/api/reports');
+      setReports(response.data?.data || []);
     } catch (error) {
       console.error('Failed to fetch reports:', error);
     }
@@ -54,23 +50,11 @@ export default function ComparePage() {
     setComparisonResult(null);
 
     try {
-      const response = await fetch('/api/analysis/compare', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ report_ids: selectedReports }),
-        credentials: 'include',
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setComparisonResult(data.data);
-      } else {
-        alert('对比失败，请稍后重试');
-      }
-    } catch (error) {
-      alert('网络错误，请稍后重试');
+      const response = await api.post('/api/analysis/compare', { report_ids: selectedReports });
+      setComparisonResult(response.data?.data);
+    } catch (error: any) {
+      console.error('Compare error:', error);
+      alert(`对比失败: ${error.response?.data?.detail || '请稍后重试'}`);
     } finally {
       setIsComparing(false);
     }

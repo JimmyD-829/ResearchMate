@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import api from '../services/api';
 import Layout from '../components/Layout';
 import ComplianceNote from '../components/ComplianceNote';
 
@@ -21,25 +22,15 @@ export default function BenchmarkPage() {
     setBenchmarkResult(null);
 
     try {
-      const response = await fetch('/api/analysis/benchmark', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ company_name: companyName }),
-        credentials: 'include',
+      const response = await api.post('/api/analysis/benchmark', {
+        company_name: companyName
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setBenchmarkResult(data);
-      } else {
-        const errorData = await response.json().catch(() => null);
-        console.error('Benchmark error:', errorData);
-        alert(`分析失败: ${errorData?.detail || '请稍后重试'}`);
-      }
-    } catch (error) {
-      alert('网络错误，请稍后重试');
+      setBenchmarkResult(response.data);
+    } catch (error: any) {
+      console.error('Benchmark error:', error);
+      const errorMessage = error.response?.data?.detail || error.message || '请稍后重试';
+      alert(`分析失败: ${errorMessage}`);
     } finally {
       setIsAnalyzing(false);
     }
