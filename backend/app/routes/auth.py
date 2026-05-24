@@ -2,10 +2,12 @@ from fastapi import APIRouter, Depends, HTTPException, status, Header
 from sqlalchemy.orm import Session
 from ..schemas.user import UserCreate, UserLogin, UserResponse, Token
 from ..services.user_service import UserService
+from ..services.email_service import email_service
 from ..utils.auth import create_access_token, SECRET_KEY, ALGORITHM, create_password_reset_token, verify_password_reset_token
 from ..database import get_db
 from jose import JWTError, jwt
 from pydantic import BaseModel
+import asyncio
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -64,17 +66,33 @@ def get_current_user(token: str = Depends(get_token), db: Session = Depends(get_
     return user
 
 @router.post("/forgot-password")
-def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(get_db)):
+async def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(get_db)):
     user = UserService.get_user_by_email(db, request.email)
     
     if user:
         reset_token = create_password_reset_token(user.id)
         reset_link = f"https://researchmate-aznu.onrender.com/reset-password?token={reset_token}"
         
-        print(f"密码重置链接: {reset_link}")
-        print(f"发送到邮箱: {user.email}")
+        email_result = await email_service.send_password_reset_email(
+            to_email=user.email,
+            reset_link=reset_link,
+            user_nickname=user.nickname
+        )
         
-        return {"message": "如果该邮箱已注册，重置链接将发送到您的邮箱", "email": request.email}
+        if email_result["success"]:
+            return {
+                "message": "密码重置链接已发送到您的邮箱，请查收",
+                "email": request.email,
+                "email_sent": True
+            }
+        else:
+            print(f"邮件发送失败: {email_result.get('message')}")
+            print(f"备用重置链接: {reset_link}")
+            return {
+                "message": "如果该邮箱已注册，重置链接将发送到您的邮箱（邮件服务暂时不可用）",
+                "email": request.email,
+                "email_sent": False
+            }
     else:
         return {"message": "如果该邮箱已注册，重置链接将发送到您的邮箱", "email": request.email}
 
