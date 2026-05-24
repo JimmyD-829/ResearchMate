@@ -2,6 +2,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import ThemeToggle from './ThemeToggle';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -9,6 +10,9 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const { user, logout } = useAuth();
+  const pathname = usePathname();
+
+  const isActive = (path: string) => pathname === path || pathname?.startsWith(path + '/');
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors">
@@ -22,20 +26,55 @@ export default function Layout({ children }: LayoutProps) {
               </Link>
             </div>
             
-            <nav className="flex items-center space-x-4">
-              <Link href="/reports" className="text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400">
+            <nav className="flex items-center space-x-1">
+              <Link 
+                href="/reports" 
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  isActive('/reports') 
+                    ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400' 
+                    : 'text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
+              >
                 财报解析
               </Link>
-              <Link href="/compare" className="text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400">
+              <Link 
+                href="/compare" 
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  isActive('/compare') 
+                    ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400' 
+                    : 'text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
+              >
                 财报对比
               </Link>
-              <Link href="/news" className="text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400">
+              <Link 
+                href="/news" 
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  isActive('/news') 
+                    ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400' 
+                    : 'text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
+              >
                 新闻聚合
               </Link>
-              <Link href="/emotion" className="text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400">
+              <Link 
+                href="/emotion" 
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  isActive('/emotion') 
+                    ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400' 
+                    : 'text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
+              >
                 情绪分析
               </Link>
-              <Link href="/benchmark" className="text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400">
+              <Link 
+                href="/benchmark" 
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  isActive('/benchmark') 
+                    ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400' 
+                    : 'text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
+              >
                 行业对标
               </Link>
 

@@ -32,9 +32,11 @@ export default function BenchmarkPage() {
 
       if (response.ok) {
         const data = await response.json();
-        setBenchmarkResult(data.data);
+        setBenchmarkResult(data);
       } else {
-        alert('分析失败，请稍后重试');
+        const errorData = await response.json().catch(() => null);
+        console.error('Benchmark error:', errorData);
+        alert(`分析失败: ${errorData?.detail || '请稍后重试'}`);
       }
     } catch (error) {
       alert('网络错误，请稍后重试');
