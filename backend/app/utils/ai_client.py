@@ -48,3 +48,72 @@ class AIClient:
     
     def answer_question(self, question: str) -> str:
         return f"关于您的问题：{question}\n\n根据数据分析，我们认为..."
+    
+    def natural_language_query(self, query: str) -> str:
+        import json
+        
+        if not self.api_key:
+            return json.dumps({
+                "error": "OPENAI_API_KEY not configured",
+                "suggestion": "Please set OPENAI_API_KEY in environment variables"
+            })
+        
+        try:
+            from openai import OpenAI
+            
+            client = OpenAI(api_key=self.api_key)
+            
+            response = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "You are a financial analysis assistant. Answer questions about companies, financial reports, and market data."},
+                    {"role": "user", "content": query}
+                ],
+                max_tokens=1000,
+                temperature=0.7
+            )
+            
+            return json.dumps({
+                "answer": response.choices[0].message.content,
+                "model": "gpt-3.5-turbo",
+                "query": query
+            })
+        except Exception as e:
+            return json.dumps({
+                "error": str(e),
+                "fallback_answer": self.answer_question(query)
+            })
+    
+    def analyze_with_methodology(self, parsed_data: dict) -> str:
+        import json
+        
+        if not self.api_key:
+            return json.dumps({
+                "analysis": self.analyze_financial_report(json.dumps(parsed_data)),
+                "note": "Using fallback mode (no API key)"
+            })
+        
+        try:
+            from openai import OpenAI
+            
+            client = OpenAI(api_key=self.api_key)
+            
+            response = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "You are a financial analyst. Analyze the following financial report data using standard financial methodologies like DCF, ratio analysis, etc."},
+                    {"role": "user", "content": f"Analyze this financial data: {json.dumps(parsed_data, ensure_ascii=False)}"}
+                ],
+                max_tokens=1500,
+                temperature=0.5
+            )
+            
+            return json.dumps({
+                "methodology_analysis": response.choices[0].message.content,
+                "data_source": "AI-powered analysis"
+            })
+        except Exception as e:
+            return json.dumps({
+                "error": str(e),
+                "fallback": self.analyze_financial_report(json.dumps(parsed_data))
+            })
