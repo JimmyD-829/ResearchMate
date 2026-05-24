@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
+from typing import List
 from ..schemas.follow import FollowCreate, FollowResponse
 from ..schemas.news import NewsListResponse
 from ..services.follow_service import FollowService
@@ -7,6 +9,42 @@ from ..services.news_service import NewsService
 from ..database import get_db
 
 router = APIRouter(prefix="/api", tags=["news"])
+
+class FetchNewsRequest(BaseModel):
+    companies: List[str]
+
+@router.post("/news/fetch")
+async def fetch_news_for_companies(
+    request: FetchNewsRequest,
+    db: Session = Depends(get_db)
+):
+    fetched_count = 0
+    results = []
+
+    for company in request.companies:
+        try:
+            articles = NewsService.fetch_news_from_api([company])
+            for article_data in articles:
+                article = NewsService.create_news_article(db, article_data)
+                results.append({
+                    "company": company,
+                    "title": article_data["title"],
+                    "status": "success"
+                })
+                fetched_count += 1
+        except Exception as e:
+            results.append({
+                "company": company,
+                "error": str(e),
+                "status": "failed"
+            })
+
+    return {
+        "success": True,
+        "fetched": fetched_count,
+        "results": results,
+        "message": f"Successfully fetched {fetched_count} news articles"
+    }
 
 @router.post("/follows", response_model=FollowResponse, status_code=status.HTTP_201_CREATED)
 def follow_company(

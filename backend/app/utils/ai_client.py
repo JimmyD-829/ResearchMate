@@ -46,6 +46,56 @@ class AIClient:
             "assessment": "公司估值低于行业平均水平，增长表现优于同行"
         }
     
+    def industry_benchmark(self, company_name: str) -> str:
+        import json
+
+        benchmark_data = {
+            "company_name": company_name,
+            "analysis_date": "2026-05-24",
+            "industry_positioning": {
+                "market_share": "12.5%",
+                "industry_ranking": "Top 15%",
+                "competitive_advantage": ["品牌影响力强", "研发投入领先", "渠道覆盖广泛"]
+            },
+            "financial_comparison": {
+                "revenue_growth": {
+                    "company": "15.3%",
+                    "industry_avg": "10.2%",
+                    "assessment": "优于行业平均"
+                },
+                "profit_margin": {
+                    "company": "18.2%",
+                    "industry_avg": "15.8%",
+                    "assessment": "盈利能力突出"
+                },
+                "roe": {
+                    "company": "16.8%",
+                    "industry_avg": "12.5%",
+                    "assessment": "资本回报率优秀"
+                },
+                "debt_ratio": {
+                    "company": "45.2%",
+                    "industry_avg": "52.3%",
+                    "assessment": "财务结构稳健"
+                }
+            },
+            "swot_analysis": {
+                "strengths": ["技术领先", "市场份额增长", "现金流充足"],
+                "weaknesses": ["国际化程度不足", "产品线相对集中"],
+                "opportunities": ["数字化转型加速", "新兴市场拓展"],
+                "threats": ["行业竞争加剧", "原材料成本波动"]
+            },
+            "peer_comparison": [
+                {"peer": "同行A", "score": 78, "revenue_growth": "12.1%"},
+                {"peer": "同行B", "score": 82, "revenue_growth": "14.5%"},
+                {"peer": company_name, "score": 85, "revenue_growth": "15.3%"}
+            ],
+            "overall_assessment": f"{company_name}在行业中处于领先地位，财务指标优于行业平均水平，建议持续关注其技术创新和市场拓展进展。",
+            "recommendation": "推荐 - 公司基本面良好，具备长期投资价值"
+        }
+
+        return json.dumps(benchmark_data, ensure_ascii=False)
+
     def answer_question(self, question: str) -> str:
         return f"关于您的问题：{question}\n\n根据数据分析，我们认为..."
     
