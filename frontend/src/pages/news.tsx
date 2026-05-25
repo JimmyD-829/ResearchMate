@@ -39,7 +39,8 @@ export default function NewsPage() {
     try {
       const params = company ? { company_name: company } : undefined;
       const response = await newsApi.getNews(params);
-      const newsData = response.data?.data || response.data;
+      const result = response.data;
+      const newsData = result?.data || result;
       setNews(newsData?.items || []);
       setFilterCompany(company || null);
     } catch (err) {

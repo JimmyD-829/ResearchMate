@@ -70,8 +70,10 @@ export default function EmotionPage() {
         emotionApi.getScore(company),
         emotionApi.getTrend(company, 30),
       ]);
-      setEmotionScore(scoreResponse.data?.data || scoreResponse.data);
-      setEmotionTrend(trendResponse.data?.data || trendResponse.data);
+      const scoreResult = scoreResponse.data;
+      const trendResult = trendResponse.data;
+      setEmotionScore(scoreResult?.data || scoreResult);
+      setEmotionTrend(trendResult?.data || trendResult);
     } catch (err) {
       console.error('获取情绪数据失败');
     } finally {
