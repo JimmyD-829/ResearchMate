@@ -26,8 +26,9 @@ export default function NewsPage() {
 
   const fetchFollows = async () => {
     try {
-      const response = await newsApi.getFollows();
-      const followsData = Array.isArray(response) ? response : (response.data?.data || response.data || []);
+      const response = await newsApi.getFollows() as any;
+      const responseData = response?.data || response;
+      const followsData = responseData?.data || responseData || [];
       setFollows(Array.isArray(followsData) ? followsData : []);
     } catch (err) {
       console.error('获取关注列表失败');

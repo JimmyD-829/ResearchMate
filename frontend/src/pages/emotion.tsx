@@ -52,8 +52,9 @@ export default function EmotionPage() {
 
   const fetchFollows = async () => {
     try {
-      const response = await newsApi.getFollows();
-      const followsData = Array.isArray(response) ? response : (response.data?.data || response.data || []);
+      const response = await newsApi.getFollows() as any;
+      const responseData = response?.data || response;
+      const followsData = responseData?.data || responseData || [];
       setFollows(Array.isArray(followsData) ? followsData : []);
       if (Array.isArray(followsData) && followsData.length > 0) {
         setSelectedCompany(followsData[0].company_name);
