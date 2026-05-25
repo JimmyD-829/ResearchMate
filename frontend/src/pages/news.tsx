@@ -39,8 +39,8 @@ export default function NewsPage() {
     setLoading(true);
     try {
       const params = company ? { company_name: company } : undefined;
-      const response = await newsApi.getNews(params);
-      const result = response.data;
+      const response = await newsApi.getNews(params) as any;
+      const result: any = response?.data || response;
       const newsData = result?.data || result;
       setNews(newsData?.items || []);
       setFilterCompany(company || null);

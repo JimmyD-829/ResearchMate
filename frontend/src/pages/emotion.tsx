@@ -71,8 +71,8 @@ export default function EmotionPage() {
         emotionApi.getScore(company),
         emotionApi.getTrend(company, 30),
       ]);
-      const scoreResult = scoreResponse.data;
-      const trendResult = trendResponse.data;
+      const scoreResult: any = scoreResponse.data;
+      const trendResult: any = trendResponse.data;
       setEmotionScore(scoreResult?.data || scoreResult);
       setEmotionTrend(trendResult?.data || trendResult);
     } catch (err) {
