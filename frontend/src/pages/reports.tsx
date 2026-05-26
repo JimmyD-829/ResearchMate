@@ -30,8 +30,8 @@ export default function ReportsPage() {
   const fetchReports = async () => {
     setLoading(true);
     try {
-      const response = await reportApi.getAll();
-      const reportsData = response.data?.data || response.data;
+      const response = await reportApi.getAll() as any;
+      const reportsData = response?.data || response;
       setReports(Array.isArray(reportsData) ? reportsData : []);
     } catch (err) {
       setError('获取财报列表失败');
