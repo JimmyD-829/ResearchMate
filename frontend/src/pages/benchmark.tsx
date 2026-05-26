@@ -179,13 +179,13 @@ export default function BenchmarkPage() {
                 <h2 className="font-semibold text-gray-900 dark:text-white mb-4">SWOT分析</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {[
-                    { label: '优势 Strengths', items: benchmarkResult.swot_analysis.strengths, color: 'green' },
-                    { label: '劣势 Weaknesses', items: benchmarkResult.swot_analysis.weaknesses, color: 'red' },
-                    { label: '机会 Opportunities', items: benchmarkResult.swot_analysis.opportunities, color: 'blue' },
-                    { label: '威胁 Threats', items: benchmarkResult.swot_analysis.threats, color: 'yellow' },
+                    { label: '优势 Strengths', items: benchmarkResult.swot_analysis.strengths, bgColor: 'bg-green-50 dark:bg-green-900/20', textColor: 'text-green-700 dark:text-green-400' },
+                    { label: '劣势 Weaknesses', items: benchmarkResult.swot_analysis.weaknesses, bgColor: 'bg-red-50 dark:bg-red-900/20', textColor: 'text-red-700 dark:text-red-400' },
+                    { label: '机会 Opportunities', items: benchmarkResult.swot_analysis.opportunities, bgColor: 'bg-blue-50 dark:bg-blue-900/30', textColor: 'text-blue-700 dark:text-blue-400' },
+                    { label: '威胁 Threats', items: benchmarkResult.swot_analysis.threats, bgColor: 'bg-yellow-50 dark:bg-yellow-900/20', textColor: 'text-yellow-700 dark:text-yellow-400' },
                   ].map((swot, idx) => (
-                    <div key={idx} className={`rounded-xl p-4 bg-${swot.color}-50 dark:bg-${swot.color}-900/20`}>
-                      <h3 className={`font-medium text-${swot.color}-700 dark:text-${swot.color}-400 mb-2`}>{swot.label}</h3>
+                    <div key={idx} className={`rounded-xl p-4 ${swot.bgColor}`}>
+                      <h3 className={`font-medium ${swot.textColor} mb-2`}>{swot.label}</h3>
                       <ul className="list-disc list-inside space-y-1">
                         {swot.items?.map((item: string, i: number) => (
                           <li key={i} className="text-sm text-gray-700 dark:text-gray-300">{item}</li>

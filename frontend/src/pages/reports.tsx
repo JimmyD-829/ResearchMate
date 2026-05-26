@@ -182,8 +182,26 @@ export default function ReportsPage() {
           </div>
           
           {error && (
-            <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-600 dark:text-red-400 text-sm">
-              {error}
+            <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <p className="text-red-600 dark:text-red-400 text-sm font-medium">{error}</p>
+                  <div className="mt-2 text-xs text-red-500 dark:text-red-400 space-y-1">
+                    <p>• 检查网络连接是否正常</p>
+                    <p>• 确认后端服务 (Render.com) 正在运行</p>
+                    <p>• 文件大小不超过50MB，格式为PDF/Excel/CSV</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setError('');
+                    if (selectedFile) handleUpload();
+                  }}
+                  className="ml-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium whitespace-nowrap"
+                >
+                  重试上传
+                </button>
+              </div>
             </div>
           )}
           

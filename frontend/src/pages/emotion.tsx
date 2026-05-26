@@ -32,14 +32,12 @@ export default function EmotionPage() {
   const [emotionScore, setEmotionScore] = useState<EmotionScore | null>(null);
   const [emotionTrend, setEmotionTrend] = useState<EmotionTrendResponse | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const { user } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!user) {
-      return;
-    }
     fetchFollows();
   }, [user]);
 
@@ -51,20 +49,48 @@ export default function EmotionPage() {
 
   const fetchFollows = async () => {
     try {
-      const response = await newsApi.getFollows() as any;
-      const responseData = response?.data || response;
-      const followsData = responseData?.data || responseData || [];
-      setFollows(Array.isArray(followsData) ? followsData : []);
-      if (Array.isArray(followsData) && followsData.length > 0) {
-        setSelectedCompany(followsData[0].company_name);
+      if (user) {
+        const response = await newsApi.getFollows() as any;
+        const responseData = response?.data || response;
+        const followsData = responseData?.data || responseData || [];
+        setFollows(Array.isArray(followsData) ? followsData : []);
+        if (Array.isArray(followsData) && followsData.length > 0) {
+          setSelectedCompany(followsData[0].company_name);
+        } else {
+          setSelectedCompany('平安银行');
+        }
+      } else {
+        setSelectedCompany('平安银行');
       }
     } catch (err) {
-      console.error('获取关注列表失败');
+      console.error('获取关注列表失败，使用默认公司');
+      setSelectedCompany('平安银行');
     }
   };
 
+  const getFallbackEmotionData = () => ({
+    score: {
+      company_name: selectedCompany || '平安银行',
+      current_score: 15.5,
+      current_label: 'positive',
+      last_7d_avg: 12.3,
+      last_30d_avg: 8.7,
+      article_count: 156,
+      last_updated: new Date().toISOString()
+    } as EmotionScore,
+    trend: {
+      company_name: selectedCompany || '平安银行',
+      trend: Array.from({ length: 30 }, (_, i) => ({
+        date: new Date(Date.now() - (29 - i) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        daily_score: Math.sin(i / 5) * 20 + 10 + (Math.random() - 0.5) * 10,
+        article_count: Math.floor(Math.random() * 10) + 3
+      }))
+    } as EmotionTrendResponse
+  });
+
   const fetchEmotionData = async (company: string) => {
     setLoading(true);
+    setError(null);
     try {
       const [scoreResponse, trendResponse] = await Promise.all([
         emotionApi.getScore(company),
@@ -80,14 +106,18 @@ export default function EmotionPage() {
         setEmotionScore(scoreData);
         setEmotionTrend(trendData);
       } else {
-        console.error('Empty emotion data received');
-        setEmotionScore(null);
-        setEmotionTrend(null);
+        console.warn('Empty emotion data received, using fallback');
+        const fallback = getFallbackEmotionData();
+        setEmotionScore(fallback.score);
+        setEmotionTrend(fallback.trend);
+        setError('使用示例数据（后端未返回数据）');
       }
-    } catch (err) {
-      console.error('获取情绪数据失败:', err);
-      setEmotionScore(null);
-      setEmotionTrend(null);
+    } catch (err: any) {
+      console.error('获取情绪数据失败，使用示例数据:', err.message);
+      const fallback = getFallbackEmotionData();
+      setEmotionScore(fallback.score);
+      setEmotionTrend(fallback.trend);
+      setError(err.message || '网络连接失败，显示示例数据');
     } finally {
       setLoading(false);
     }
@@ -156,7 +186,15 @@ export default function EmotionPage() {
     },
   };
 
-  if (!user) return null;
+  const defaultCompanies = [
+    { id: 'default-1', company_name: '平安银行', stock_code: '000001' },
+    { id: 'default-2', company_name: '贵州茅台', stock_code: '600519' },
+    { id: 'default-3', company_name: '比亚迪', stock_code: '002594' },
+    { id: 'default-4', company_name: '腾讯控股', stock_code: '00700' },
+    { id: 'default-5', company_name: '宁德时代', stock_code: '300750' },
+  ];
+
+  const displayCompanies = follows.length > 0 ? follows : defaultCompanies;
 
   return (
     <Layout>
@@ -166,34 +204,49 @@ export default function EmotionPage() {
           <p className="text-gray-600 dark:text-gray-400 mt-2">跟踪市场情绪变化，辅助投资决策</p>
         </div>
 
+        {/* Error/Warning Banner */}
+        {error && (
+          <div className="mb-6 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-yellow-800">
+                ⚠️ {error}
+              </p>
+              <button
+                onClick={() => selectedCompany && fetchEmotionData(selectedCompany)}
+                className="ml-4 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 text-sm font-medium"
+              >
+                重试
+              </button>
+            </div>
+          </div>
+        )}
+
         <ComplianceNote />
 
         <div className="grid md:grid-cols-4 gap-6">
           <div className="md:col-span-1">
             <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">选择公司</h2>
-              {follows.length === 0 ? (
-                <p className="text-sm text-gray-600 dark:text-gray-400">暂无关注公司</p>
-              ) : (
-                <div className="space-y-2">
-                  {follows.map((follow) => (
-                    <button
-                      key={follow.id}
-                      onClick={() => setSelectedCompany(follow.company_name)}
-                      className={`w-full text-left p-4 rounded-xl transition-colors ${
-                        selectedCompany === follow.company_name
-                          ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400'
-                          : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
-                      }`}
-                    >
-                      <p className="font-semibold">{follow.company_name}</p>
-                      {follow.stock_code && (
-                        <p className="text-xs text-gray-500 dark:text-gray-400">{follow.stock_code}</p>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              )}
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
+                选择公司 {follows.length === 0 && <span className="text-sm text-gray-500">(示例)</span>}
+              </h2>
+              <div className="space-y-2">
+                {displayCompanies.map((company) => (
+                  <button
+                    key={company.id}
+                    onClick={() => setSelectedCompany(company.company_name)}
+                    className={`w-full text-left p-4 rounded-xl transition-colors ${
+                      selectedCompany === company.company_name
+                        ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400'
+                        : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+                    }`}
+                  >
+                    <p className="font-semibold">{company.company_name}</p>
+                    {company.stock_code && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{company.stock_code}</p>
+                    )}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
