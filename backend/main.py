@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 
-app = FastAPI(title="ResearchMate API", version="1.0.0")
+app = FastAPI(title="ResearchMate API", version="1.0.1")  # Updated: 2026-05-26 - 行业对标数据差异化
 
 app.add_middleware(
     CORSMiddleware,
