@@ -327,35 +327,63 @@ class AIClient:
             }
 
         else:
+            import hashlib
+
+            hash_val = int(hashlib.md5(company_name.encode()).hexdigest()[:8], 16)
+            random.seed(hash_val)
+
+            base_revenue = 10 + (hash_val % 30)
+            base_profit = 8 + (hash_val % 25)
+            base_roe = 10 + (hash_val % 25)
+            base_debt = 25 + (hash_val % 50)
+
+            industries = [
+                ("金融服务业", "行业平均", "监管合规", "数字化转型"),
+                ("制造业", "产能扩张", "成本控制", "技术升级"),
+                ("消费品", "品牌建设", "渠道拓展", "消费升级"),
+                ("科技行业", "研发创新", "用户增长", "生态建设"),
+                ("能源行业", "绿色转型", "效率提升", "新能源布局"),
+                ("医疗健康", "创新药研发", "市场准入", "国际化"),
+                ("房地产", "去库存", "现金流管理", "转型服务"),
+                ("交通运输", "网络优化", "成本控制", "智能化")
+            ]
+
+            industry_idx = hash_val % len(industries)
+            industry, adv1, adv2, opp1 = industries[industry_idx]
+
+            peer_names = ["行业龙头A", "主要竞争者B", "新兴企业C"]
+            peer_scores = [75 + (hash_val % 20), 70 + ((hash_val+3) % 18), 65 + ((hash_val+7) % 15)]
+            peer_growths = [f"{12 + (hash_val % 15)}%", f"{8 + ((hash_val+2) % 12)}%", f"{5 + ((hash_val+4) % 10)}%"]
+
             return {
-                "market_share": "12.5%",
-                "ranking": "Top 15%",
-                "advantages": ["品牌影响力强", "研发投入领先", "渠道覆盖广泛"],
-                "revenue_growth": "15.3%",
-                "industry_revenue_avg": "10.2%",
-                "revenue_assessment": "优于行业平均",
-                "profit_margin": "18.2%",
-                "industry_profit_avg": "15.8%",
-                "profit_assessment": "盈利能力突出",
-                "roe": "16.8%",
-                "industry_roe_avg": "12.5%",
-                "roe_assessment": "资本回报率优秀",
-                "debt_ratio": "45.2%",
-                "industry_debt_avg": "52.3%",
-                "debt_assessment": "财务结构稳健",
-                "strengths": ["技术领先", "市场份额增长", "现金流充足"],
-                "weaknesses": ["国际化程度不足", "产品线相对集中"],
-                "opportunities": ["数字化转型加速", "新兴市场拓展"],
-                "threats": ["行业竞争加剧", "原材料成本波动"],
-                "peer1": "同行A",
-                "peer1_score": 78,
-                "peer1_growth": "12.1%",
-                "peer2": "同行B",
-                "peer2_score": 82,
-                "peer2_growth": "14.5%",
-                "self_score": 85,
-                "overall_assessment": f"{company_name}在行业中处于领先地位，财务指标优于行业平均水平，建议持续关注其技术创新和市场拓展进展。",
-                "recommendation": "推荐 - 公司基本面良好，具备长期投资价值"
+                "market_share": f"{5 + (hash_val % 20)}%",
+                "ranking": f"Top {10 + (hash_val % 40)}%",
+                "advantages": [f"{industry}经验丰富", adv1, adv2, f"客户基础稳固"],
+                "revenue_growth": f"{base_revenue}%",
+                "industry_revenue_avg": f"{base_revenue - 5 + (hash_val % 6)}%",
+                "revenue_assessment": ["低于行业平均", "接近行业平均", "优于行业平均", "显著优于行业平均"][hash_val % 4],
+                "profit_margin": f"{base_profit}%",
+                "industry_profit_avg": f"{base_profit - 3 + (hash_val % 6)}%",
+                "profit_assessment": ["盈利能力待提升", "盈利水平一般", "盈利能力良好", "盈利表现优秀"][hash_val % 4],
+                "roe": f"{base_roe}%",
+                "industry_roe_avg": f"{base_roe - 4 + (hash_val % 7)}%",
+                "roe_assessment": ["资本回报率偏低", "资本回报率适中", "资本回报率良好", "资本回报率优秀"][hash_val % 4],
+                "debt_ratio": f"{base_debt}%",
+                "industry_debt_avg": f"{base_debt - 5 + (hash_val % 10)}%",
+                "debt_assessment": ["负债率偏高需关注", "负债率处于合理区间", "财务结构稳健", "几乎无负债"][min(hash_val % 4, 3)],
+                "strengths": [f"在{industry}有一定积累", "业务模式成熟", "区域市场优势明显"],
+                "weaknesses": ["增长速度放缓", "创新能力待加强", "抗风险能力有限"],
+                "opportunities": [opp1, "政策支持力度加大", "市场需求持续增长"],
+                "threats": ["行业竞争加剧", "原材料/人力成本上升", "政策法规变化风险"],
+                "peer1": peer_names[0],
+                "peer1_score": peer_scores[0],
+                "peer1_growth": peer_growths[0],
+                "peer2": peer_names[1],
+                "peer2_score": peer_scores[1],
+                "peer2_growth": peer_growths[1],
+                "self_score": 80 + (hash_val % 15),
+                "overall_assessment": f"{company_name}作为{industry}的一员，目前营收增速为{base_revenue}%，利润率为{base_profit}%，整体财务状况{['面临一定挑战', '保持稳定', '表现良好', '较为突出'][hash_val % 4]}。建议关注其{['成本控制能力', '技术创新投入', '市场拓展策略', '运营管理效率'][hash_val % 4]}方面的表现。",
+                "recommendation": ["观望 - 需要进一步观察基本面改善情况", "中性 - 适合稳健型投资者关注", "推荐 - 具备一定的投资价值", "强烈推荐 - 基本面扎实，值得重点关注"][hash_val % 4]
             }
 
     def answer_question(self, question: str) -> str:
