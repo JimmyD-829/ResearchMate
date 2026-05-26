@@ -67,15 +67,25 @@ export default function Layout({ children }: LayoutProps) {
               >
                 情绪分析
               </Link>
-              <Link 
-                href="/benchmark" 
+              <Link
+                href="/benchmark"
                 className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  isActive('/benchmark') 
-                    ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400' 
+                  isActive('/benchmark')
+                    ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400'
                     : 'text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                 }`}
               >
                 行业对标
+              </Link>
+              <Link
+                href="/monitor"
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  isActive('/monitor')
+                    ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400'
+                    : 'text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
+              >
+                数据监控
               </Link>
 
               <ThemeToggle />

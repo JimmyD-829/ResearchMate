@@ -151,11 +151,31 @@ export const newsApi = {
 export const emotionApi = {
   getScore: (company_name: string) =>
     api.get<EmotionScore>(`/api/emotion/${company_name}`),
-  
+
   getTrend: (company_name: string, days?: number) =>
     api.get<EmotionTrendResponse>(`/api/emotion/${company_name}/trend`, {
       params: { days },
     }),
+};
+
+export const monitorApi = {
+  getDashboard: () =>
+    api.get('/api/monitor/dashboard'),
+
+  getIndustryAccuracy: () =>
+    api.get('/api/monitor/industry-accuracy'),
+
+  getNewsQuality: () =>
+    api.get('/api/monitor/news-quality'),
+
+  getEmotionCoverage: () =>
+    api.get('/api/monitor/emotion-coverage'),
+
+  getReportsQuality: () =>
+    api.get('/api/monitor/reports-quality'),
+
+  getSystemHealth: () =>
+    api.get('/api/monitor/system-health'),
 };
 
 export default api;

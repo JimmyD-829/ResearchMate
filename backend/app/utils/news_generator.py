@@ -115,7 +115,7 @@ class NewsGenerator:
                 "转型轻资产模式，代建业务增长{growth}%",
                 "绿色建筑认证项目增加，ESG评级提升"
             ],
-            " sources": ["观点地产网", "房天下", "乐居财经", "中国房地产报"]
+            "sources": ["观点地产网", "房天下", "乐居财经", "中国房地产报"]
         },
         "交通": {
             "keywords": ["运力", "航线", "物流", "快递", "港口", "航空", "高铁", "自动驾驶", "智慧交通", "冷链"],
@@ -131,7 +131,71 @@ class NewsGenerator:
                 "数字化调度系统上线，运营效率提升{growth}%",
                 "多式联运体系完善，一站式服务能力增强"
             ],
-            " sources": ["运输人网", "物流指闻", "民航资源网", "高铁网"]
+            "sources": ["运输人网", "物流指闻", "民航资源网", "高铁网"]
+        },
+        "新能源": {
+            "keywords": ["储能", "光伏", "风电", "锂电池", "新能源车", "充电桩", "氢能", "碳中和", "清洁能源", "宁德时代"],
+            "events": [
+                "{quarter}季度储能系统出货量达{capacity}GWh，同比增长{growth}%",
+                "新一代{product}电池量产下线，能量密度提升{growth}%",
+                "光伏组件转换效率突破{rate}%，刷新行业纪录",
+                "获得{client}{amount}GWh储能订单，合同金额超百亿",
+                "海外{region}工厂投产，国际化布局加速推进",
+                "固态电池研发取得重大进展，安全性大幅提升",
+                "充电网络覆盖{number}个城市，服务用户超{number}万",
+                "与{partner}共建新能源汽车换电生态",
+                "绿氢项目落地{location}，年产能达{capacity}万吨",
+                "碳足迹认证通过，产品获欧盟市场准入"
+            ],
+            "sources": ["中国能源报", "新能源网", "储能网", "光伏头条", "电动汽车观察家"]
+        },
+        "半导体": {
+            "keywords": ["芯片", "集成电路", "晶圆", "光刻机", "EDA", "半导体材料", "先进封装", "AI芯片", "中芯国际"],
+            "events": [
+                "{nm}nm制程良率提升至{rate}%，产能爬坡顺利",
+                "自主研发的{product}芯片流片成功，性能对标国际一线",
+                "宣布投资{amount}亿元建设{nm}nm晶圆厂",
+                "与{partner}达成深度合作，共同开发下一代芯片",
+                "汽车芯片出货量暴增{growth}%，缺芯问题缓解",
+                "先进封装技术实现突破，Chiplet方案量产在即",
+                "AI训练芯片算力提升{growth}%，能效比行业领先",
+                "半导体设备国产化率达{rate}%，供应链安全增强",
+                "获得{number}项核心专利，构建技术护城河",
+                "第三季度营收达{amount}亿元，创历史新高"
+            ],
+            "sources": ["半导体行业观察", "电子工程专辑", "集微网", "全球半导体观察", "芯片之家"]
+        },
+        "教育": {
+            "keywords": ["在线教育", "K12", "职业教育", "素质教育", "留学", "考研", "公考", "技能培训", "AI教育", "新东方"],
+            "events": [
+                "推出AI驱动的{product}学习系统，学习效率提升{growth}%",
+                "{quarter}季度营收达{amount}亿元，付费用户增长{growth}%",
+                "与{partner}合作，共同打造{field}人才培养体系",
+                "职业培训业务拓展至{number}个城市，就业率达{rate}%",
+                "上线元宇宙教学平台，沉浸式体验获好评",
+                "考研/公考培训学员人数突破{number}万，市占率第一",
+                "素质教育课程体系升级，STEAM教育受家长青睐",
+                "国际教育业务恢复，留学咨询量增长{growth}%",
+                "企业内训解决方案签约{number}家企业客户",
+                "发布年度教育行业白皮书，洞察未来趋势"
+            ],
+            "sources": ["芥末堆看教育", "多知网", "蓝鲸EDU", "中国教育报", "鲸媒体"]
+        },
+        "文化传媒": {
+            "keywords": ["影视", "游戏", "动漫", "直播", "短视频", "IP运营", "广告", "出版", "体育", "腾讯音乐"],
+            "events": [
+                "自研游戏{product}全球收入突破{amount}亿美元，MAU超{number}亿",
+                "影视作品{title}播放量破{number}亿，口碑票房双丰收",
+                "短视频平台日活用户达{number}亿，创作者生态繁荣",
+                "与{ip}达成IP授权合作，衍生品市场空间广阔",
+                "元宇宙演唱会成功举办，线上观众超{number}万",
+                "数字藏品(NFT)平台上线，首期发售秒罄",
+                "电竞战队夺得世界冠军，品牌价值飙升",
+                "AIGC工具赋能内容生产，效率提升{growth}%",
+                "海外发行收入增长{growth}%，文化出海成效显著",
+                "体育赛事版权运营创新，商业化模式多元化"
+            ],
+            "sources": ["娱乐资本论", "三文娱", "新文化商业", "传媒内参", "游戏葡萄"]
         }
     }
 
@@ -139,20 +203,30 @@ class NewsGenerator:
     def _get_industry(company_name: str) -> str:
         name_lower = company_name.lower()
 
-        if any(k in name_lower for k in ["银行", "保险", "证券", "金融", "平安", "招商", "中信", "浦发"]):
+        if any(k in name_lower for k in ["银行", "保险", "证券", "金融", "平安", "招商", "中信", "浦发", "兴业"]):
             return "金融"
-        elif any(k in name_lower for k in ["汽车", "制造", "比亚迪", "万向", "格力", "美的", "海尔"]):
+        elif any(k in name_lower for k in ["新能源", "储能", "光伏", "风电", "电池", "锂电", "宁德", "隆基", "思格", "比亚迪"]):
+            return "新能源"
+        elif any(k in name_lower for k in ["汽车", "制造", "万向", "格力", "美的", "海尔", "富士康"]):
             return "制造"
-        elif any(k in name_lower for k in ["科技", "腾讯", "阿里", "字节", "百度", "华为", "小米", "openai", "微软", "apple", "nvidia", "tesla"]):
+        elif any(k in name_lower for k in ["影视", "游戏", "动漫", "直播", "短视频", "传媒", "音乐", "字节跳动"]):
+            return "文化传媒"
+        elif any(k in name_lower for k in ["科技", "腾讯", "阿里", "百度", "华为", "小米", "openai", "微软", "apple", "nvidia", "meta", "字节"]):
             return "科技"
-        elif any(k in name_lower for k in ["茅台", "五粮液", "消费", "零售", "京东", "拼多多", "美团", "雅虎"]):
+        elif any(k in name_lower for k in ["茅台", "五粮液", "消费", "零售", "京东", "拼多多", "美团", "雅虎", "亚马逊"]):
             return "消费"
-        elif any(k in name_lower for k in ["能源", "电力", "石油", "石化", "光伏", "思格", "宁德", "隆基"]):
+        elif any(k in name_lower for k in ["能源", "电力", "石油", "石化", "煤炭", "天然气", "国家电网"]):
             return "能源"
-        elif any(k in name_lower for k in ["医药", "生物", "健康", "恒瑞", "药明"]):
+        elif any(k in name_lower for k in ["医药", "生物", "健康", "恒瑞", "药明", "迈瑞"]):
             return "医疗"
-        elif any(k in name_lower for k in ["地产", "万科", "碧桂园", "保利"]):
+        elif any(k in name_lower for k in ["地产", "万科", "碧桂园", "保利", "恒大"]):
             return "房地产"
+        elif any(k in name_lower for k in ["交通", "物流", "快递", "航空", "铁路", "港口", "顺丰", "中通"]):
+            return "交通"
+        elif any(k in name_lower for k in ["半导体", "芯片", "电子", "中芯", "台积电", "高通", "英特尔"]):
+            return "半导体"
+        elif any(k in name_lower for k in ["教育", "新东方", "好未来", "网易有道", "培训"]):
+            return "教育"
         else:
             industries = list(NewsGenerator.INDUSTRIES.keys())
             hash_val = int(hashlib.md5(company_name.encode()).hexdigest()[:4], 16)
@@ -221,7 +295,9 @@ class NewsGenerator:
                 route=random.choice(["京沪", "中欧", "中亚", "东盟", "中非"]),
                 goal=random.choice(["碳达峰", "碳中和", "全面绿色转型", "零碳排放"]),
                 client=random.choice(["比亚迪", "特斯拉", "苹果", "华为", "小米", "大众", "丰田", "宝马"]),
-                location=random.choice(["长三角", "珠三角", "成渝", "京津冀", "中部地区", "海外"])
+                location=random.choice(["长三角", "珠三角", "成渝", "京津冀", "中部地区", "海外"]),
+                nm=random.choice([3, 5, 7, 14, 28]),
+                title=random.choice(["《星际迷航》", "《未来世界》", "《科技革命》", "《商业帝国》"])
             )
 
             emotion_score = round(random.uniform(-30, 30), 2)

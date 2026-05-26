@@ -38,15 +38,17 @@ async def startup_event():
         from app.routes.news import router as news_router
         from app.routes.emotion import router as emotion_router
         from app.routes.analysis import router as analysis_router
-        
+        from app.routes.monitor import router as monitor_router
+
         logger.info("All route modules imported")
-        
+
         app.include_router(auth_router)
         app.include_router(reports_router)
         app.include_router(news_router)
         app.include_router(emotion_router)
         app.include_router(analysis_router)
-        
+        app.include_router(monitor_router)
+
         logger.info("All routers registered")
         
         Base.metadata.create_all(bind=engine)
