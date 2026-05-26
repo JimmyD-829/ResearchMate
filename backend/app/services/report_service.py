@@ -49,21 +49,41 @@ class ReportService:
     
     @staticmethod
     def parse_report(report: FinancialReport) -> dict:
+        pdf_info = PDFParser.get_pdf_info(report.file_path)
+
+        if "error" in pdf_info:
+            return {"error": "无法读取PDF文件信息"}
+
+        if pdf_info.get("is_encrypted"):
+            return {"error": "该PDF文件已加密，无法解析。请提供未加密的版本。"}
+
         if PDFParser.is_scanned_pdf(report.file_path):
-            return {"error": "该文件为扫描件，OCR功能将在后续版本支持"}
-        
-        text = PDFParser.extract_text(report.file_path)
+            return {"error": "该PDF为扫描件（图片格式），暂不支持OCR识别功能。建议使用巨潮资讯网下载的文字版年报PDF或Excel格式的财务报表。"}
+
+
+        text = PDFParser.extract_text(
+            report.file_path,
+            max_pages=30,
+            max_chars=15000
+        )
+
         if not text:
-            return {"error": "无法提取PDF文本内容"}
-        
+            return {"error": "无法提取PDF文本内容。请确保文件包含可提取的文字（非纯图片）。"}
+
         ai_client = AIClient()
         result = ai_client.parse_financial_report(text)
-        
+
         try:
             data = json.loads(result)
+            data["processing_info"] = {
+                "total_pages": pdf_info.get("total_pages", 0),
+                "extracted_pages": min(30, pdf_info.get("total_pages", 0)),
+                "text_length": len(text),
+                "note": f"已提取前{min(30, pdf_info.get('total_pages', 0))}页内容进行分析"
+            }
             return data
         except json.JSONDecodeError:
-            return {"company_name": report.company_name}
+            return {"company_name": report.company_name, "raw_text_length": len(text)}
     
     @staticmethod
     def generate_summary(data: dict) -> str:

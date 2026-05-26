@@ -28,6 +28,30 @@ class NewsService:
         db.commit()
         db.refresh(article)
         return article
+
+    @staticmethod
+    def create_news_article_from_dict(db: Session, data: dict) -> NewsArticle:
+        try:
+            publish_time = data.get("publish_time")
+            if isinstance(publish_time, str):
+                publish_time = datetime.strptime(publish_time, "%Y-%m-%d %H:%M:%S")
+
+            article = NewsArticle(
+                company_name=data.get("company_name", "未知"),
+                title=data.get("title", ""),
+                source=data.get("source", "系统生成"),
+                url=data.get("url", ""),
+                publish_time=publish_time or datetime.now(),
+                emotion_score=float(data.get("emotion_score", 0)),
+                emotion_label=data.get("emotion_label", "neutral")
+            )
+            db.add(article)
+            db.commit()
+            db.refresh(article)
+            return article
+        except Exception as e:
+            print(f"创建新闻文章失败: {e}")
+            raise e
     
     @staticmethod
     def get_news_by_company(db: Session, company_name: str, limit: int = 20, offset: int = 0) -> list:

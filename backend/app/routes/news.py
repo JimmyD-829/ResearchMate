@@ -78,13 +78,45 @@ def get_news(
     if company_name:
         total = NewsService.count_news(db, company_name)
         items = NewsService.get_news_by_company(db, company_name, limit, offset)
+
+        if total == 0:
+            from ..utils.news_generator import NewsGenerator
+            generated_news = NewsGenerator.generate_news(company_name, limit)
+
+            for news_item in generated_news:
+                try:
+                    NewsService.create_news_article_from_dict(db, news_item)
+                except:
+                    pass
+
+            items = generated_news
+            total = len(generated_news)
     else:
         followed_companies = FollowService.get_user_followed_companies(db, current_user["id"])
         if followed_companies:
             total = NewsService.count_news(db)
             items = NewsService.get_news_for_companies(db, followed_companies, limit, offset)
+
+            all_items_with_generated = list(items)
+
+            for company in followed_companies:
+                company_news_count = sum(1 for item in items if item.company_name == company)
+                if company_news_count == 0:
+                    from ..utils.news_generator import NewsGenerator
+                    generated = NewsGenerator.generate_news(company, 10)
+                    all_items_with_generated.extend(generated)
+
+                    for news_item in generated:
+                        try:
+                            NewsService.create_news_article_from_dict(db, news_item)
+                        except:
+                            pass
+
+            all_items_with_generated.sort(key=lambda x: x.publish_time if hasattr(x, 'publish_time') else '', reverse=True)
+            items = all_items_with_generated[:limit]
+            total = len(all_items_with_generated)
         else:
             total = NewsService.count_news(db)
             items = NewsService.get_all_news(db, limit, offset)
-    
+
     return {"total": total, "items": items}
