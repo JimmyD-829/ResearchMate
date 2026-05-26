@@ -267,56 +267,51 @@ export default function ReportsPage() {
           ) : (
             <div className="divide-y divide-gray-200 dark:divide-gray-700">
               {reports.map((report) => (
-                <div key={report.id} className="p-8 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                  <div className="flex items-start justify-between mb-6">
-                    <div>
-                      <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{report.company_name}</h3>
+                <div key={report.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <h3 className="text-base font-semibold text-gray-900 dark:text-white">{report.company_name}</h3>
                       {report.stock_code && (
-                        <span className="text-sm text-gray-500 dark:text-gray-400 mt-1">{report.stock_code}</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">{report.stock_code}</span>
                       )}
                     </div>
-                    <span className={`px-4 py-1.5 text-xs font-semibold rounded-full ${
-                      report.status === 'success' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' :
-                      report.status === 'processing' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' :
-                      'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
-                    }`}>
-                      {report.status === 'success' ? '解析成功' :
-                       report.status === 'processing' ? '解析中' : '解析失败'}
-                    </span>
+                    <div className="flex items-center gap-3">
+                      <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                        report.status === 'success' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' :
+                        report.status === 'processing' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' :
+                        'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                      }`}>
+                        {report.status === 'success' ? '成功' :
+                         report.status === 'processing' ? '处理中' : '失败'}
+                      </span>
+                      <span className="text-xs text-gray-400">{formatDate(report.upload_time)}</span>
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4">
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">营收</p>
-                      <p className="font-semibold text-gray-900 dark:text-white text-lg">{formatNumber(report.revenue)} 万元</p>
+                  <div className="flex items-center gap-6 mb-2">
+                    <div className="text-center">
+                      <p className="text-[10px] text-gray-500 dark:text-gray-400">营收</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{formatNumber(report.revenue)}万</p>
                     </div>
-                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4">
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">净利润</p>
-                      <p className="font-semibold text-gray-900 dark:text-white text-lg">{formatNumber(report.net_profit)} 万元</p>
+                    <div className="text-center">
+                      <p className="text-[10px] text-gray-500 dark:text-gray-400">净利润</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{formatNumber(report.net_profit)}万</p>
                     </div>
-                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4">
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">负债率</p>
-                      <p className="font-semibold text-gray-900 dark:text-white text-lg">{report.debt_ratio || '--'}%</p>
+                    <div className="text-center">
+                      <p className="text-[10px] text-gray-500 dark:text-gray-400">负债率</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{report.debt_ratio || '--'}%</p>
                     </div>
-                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4">
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">毛利率</p>
-                      <p className="font-semibold text-gray-900 dark:text-white text-lg">{report.gross_margin || '--'}%</p>
+                    <div className="text-center">
+                      <p className="text-[10px] text-gray-500 dark:text-gray-400">毛利率</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{report.gross_margin || '--'}%</p>
                     </div>
                   </div>
-                  
+
                   {report.ai_summary && (
-                    <div className="bg-primary-50 dark:bg-primary-900/10 rounded-xl p-5 border border-primary-100 dark:border-primary-800">
-                      <div className="flex items-center gap-2 mb-3">
-                        <svg className="w-5 h-5 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                        </svg>
-                        <span className="text-sm text-primary-600 dark:text-primary-400 font-semibold">AI摘要</span>
-                      </div>
-                      <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{report.ai_summary}</p>
+                    <div className="bg-primary-50 dark:bg-primary-900/10 rounded-lg p-3 border border-primary-100 dark:border-primary-800 mt-2">
+                      <p className="text-xs text-gray-700 dark:text-gray-300 line-clamp-2">{report.ai_summary}</p>
                     </div>
                   )}
-                  
-                  <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">上传时间: {formatDate(report.upload_time)}</p>
                 </div>
               ))}
             </div>

@@ -328,6 +328,7 @@ class AIClient:
 
         else:
             import hashlib
+            import random
 
             hash_val = int(hashlib.md5(company_name.encode()).hexdigest()[:8], 16)
             random.seed(hash_val)
