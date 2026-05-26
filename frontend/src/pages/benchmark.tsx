@@ -89,64 +89,80 @@ export default function BenchmarkPage() {
 
         {benchmarkResult && (
           <div className="space-y-6">
-            {benchmarkResult.industry && (
+            {benchmarkResult.company_name && (
               <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
-                <h2 className="font-semibold text-gray-900 dark:text-white mb-4">所属行业</h2>
-                <p className="text-gray-600 dark:text-gray-300">{benchmarkResult.industry}</p>
+                <h2 className="font-semibold text-gray-900 dark:text-white mb-4">分析公司</h2>
+                <p className="text-gray-600 dark:text-gray-300">{benchmarkResult.company_name}</p>
+                {benchmarkResult.analysis_date && (
+                  <p className="text-sm text-gray-400 mt-2">分析日期: {benchmarkResult.analysis_date}</p>
+                )}
               </div>
             )}
 
-            {benchmarkResult.competitors && Array.isArray(benchmarkResult.competitors) && (
+            {benchmarkResult.industry_positioning && (
               <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
-                <h2 className="font-semibold text-gray-900 dark:text-white mb-4">主要竞争对手</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {benchmarkResult.competitors.map((competitor: string, index: number) => (
-                    <div key={index} className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-primary-500/20 rounded-lg flex items-center justify-center">
-                          <span className="text-sm font-medium text-primary-600 dark:text-primary-400">{index + 1}</span>
-                        </div>
-                        <span className="text-gray-900 dark:text-white">{competitor}</span>
-                      </div>
+                <h2 className="font-semibold text-gray-900 dark:text-white mb-4">行业定位</h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {benchmarkResult.industry_positioning.market_share && (
+                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">市场份额</p>
+                      <p className="text-xl font-bold text-primary-600">{benchmarkResult.industry_positioning.market_share}</p>
                     </div>
-                  ))}
+                  )}
+                  {benchmarkResult.industry_positioning.industry_ranking && (
+                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">行业排名</p>
+                      <p className="text-xl font-bold text-green-600">{benchmarkResult.industry_positioning.industry_ranking}</p>
+                    </div>
+                  )}
                 </div>
+                {benchmarkResult.industry_positioning.competitive_advantage && (
+                  <div className="mt-4">
+                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">竞争优势</p>
+                    <div className="flex flex-wrap gap-2">
+                      {benchmarkResult.industry_positioning.competitive_advantage.map((adv: string, idx: number) => (
+                        <span key={idx} className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full text-sm">
+                          {adv}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
-            {benchmarkResult.benchmark_data && typeof benchmarkResult.benchmark_data === 'object' && (
+            {benchmarkResult.financial_comparison && typeof benchmarkResult.financial_comparison === 'object' && (
               <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
-                <h2 className="font-semibold text-gray-900 dark:text-white mb-4">行业平均指标对比</h2>
+                <h2 className="font-semibold text-gray-900 dark:text-white mb-4">财务指标对比</h2>
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-gray-200 dark:border-gray-700">
                         <th className="text-left py-3 px-4 text-sm font-semibold text-gray-500 dark:text-gray-400">指标</th>
+                        <th className="right py-3 px-4 text-sm font-semibold text-gray-500 dark:text-gray-400">公司水平</th>
                         <th className="text-right py-3 px-4 text-sm font-semibold text-gray-500 dark:text-gray-400">行业平均</th>
-                        <th className="text-right py-3 px-4 text-sm font-semibold text-gray-500 dark:text-gray-400">公司水平</th>
-                        <th className="text-center py-3 px-4 text-sm font-semibold text-gray-500 dark:text-gray-400">评级</th>
+                        <th className="text-center py-3 px-4 text-sm font-semibold text-gray-500 dark:text-gray-400">评估</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {Object.entries(benchmarkResult.benchmark_data).map(([key, value]) => {
+                      {Object.entries(benchmarkResult.financial_comparison).map(([key, value]: [string, any]) => {
                         const isObject = typeof value === 'object' && value !== null;
-                        const industryAvg = isObject && 'industry_avg' in value ? String(value.industry_avg) : '-';
-                        const companyValue = isObject && 'company_value' in value ? String(value.company_value) : '-';
-                        const rating = isObject && 'rating' in value ? String(value.rating) : '-';
+                        const companyValue = isObject && value.company ? String(value.company) : '-';
+                        const industryAvg = isObject && value.industry_avg ? String(value.industry_avg) : '-';
+                        const assessment = isObject && value.assessment ? String(value.assessment) : '-';
                         
                         let ratingClass = 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400';
-                        if (rating === '优秀') ratingClass = 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400';
-                        else if (rating === '良好') ratingClass = 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400';
-                        else if (rating === '一般') ratingClass = 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400';
+                        if (assessment.includes('优于') || assessment.includes('优秀')) ratingClass = 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400';
+                        else if (assessment.includes('良好') || assessment.includes('突出')) ratingClass = 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400';
                         
                         return (
                           <tr key={key} className="border-b border-gray-100 dark:border-gray-700/50">
-                            <td className="py-3 px-4 text-gray-900 dark:text-white">{key}</td>
+                            <td className="py-3 px-4 text-gray-900 dark:text-white font-medium">{key.replace(/_/g, ' ')}</td>
+                            <td className="py-3 px-4 text-right text-gray-900 dark:text-white font-semibold">{companyValue}</td>
                             <td className="py-3 px-4 text-right text-gray-600 dark:text-gray-400">{industryAvg}</td>
-                            <td className="py-3 px-4 text-right text-gray-600 dark:text-gray-400">{companyValue}</td>
                             <td className="py-3 px-4 text-center">
                               <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${ratingClass}`}>
-                                {rating}
+                                {assessment}
                               </span>
                             </td>
                           </tr>
@@ -158,10 +174,68 @@ export default function BenchmarkPage() {
               </div>
             )}
 
-            {benchmarkResult.competitive_position && (
+            {benchmarkResult.swot_analysis && (
               <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
-                <h2 className="font-semibold text-gray-900 dark:text-white mb-4">竞争力分析</h2>
-                <p className="text-gray-600 dark:text-gray-300 leading-relaxed">{benchmarkResult.competitive_position}</p>
+                <h2 className="font-semibold text-gray-900 dark:text-white mb-4">SWOT分析</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {[
+                    { label: '优势 Strengths', items: benchmarkResult.swot_analysis.strengths, color: 'green' },
+                    { label: '劣势 Weaknesses', items: benchmarkResult.swot_analysis.weaknesses, color: 'red' },
+                    { label: '机会 Opportunities', items: benchmarkResult.swot_analysis.opportunities, color: 'blue' },
+                    { label: '威胁 Threats', items: benchmarkResult.swot_analysis.threats, color: 'yellow' },
+                  ].map((swot, idx) => (
+                    <div key={idx} className={`rounded-xl p-4 bg-${swot.color}-50 dark:bg-${swot.color}-900/20`}>
+                      <h3 className={`font-medium text-${swot.color}-700 dark:text-${swot.color}-400 mb-2`}>{swot.label}</h3>
+                      <ul className="list-disc list-inside space-y-1">
+                        {swot.items?.map((item: string, i: number) => (
+                          <li key={i} className="text-sm text-gray-700 dark:text-gray-300">{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {benchmarkResult.peer_comparison && Array.isArray(benchmarkResult.peer_comparison) && (
+              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
+                <h2 className="font-semibold text-gray-900 dark:text-white mb-4">同行对比</h2>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-gray-200 dark:border-gray-700">
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-500 dark:text-gray-400">公司</th>
+                        <th className="text-right py-3 px-4 text-sm font-semibold text-gray-500 dark:text-gray-400">综合评分</th>
+                        <th className="text-right py-3 px-4 text-sm font-semibold text-gray-500 dark:text-gray-400">营收增长</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {benchmarkResult.peer_comparison.map((peer: any, index: number) => (
+                        <tr key={index} className="border-b border-gray-100 dark:border-gray-700/50">
+                          <td className="py-3 px-4 text-gray-900 dark:text-white font-medium">{peer.peer}</td>
+                          <td className="py-3 px-4 text-right">
+                            <span className="font-bold text-primary-600">{peer.score}</span>
+                          </td>
+                          <td className="py-3 px-4 text-right text-gray-600 dark:text-gray-400">{peer.revenue_growth}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {benchmarkResult.overall_assessment && (
+              <div className="bg-gradient-to-r from-primary-50 to-blue-50 dark:from-primary-900/20 dark:to-blue-900/20 rounded-2xl border border-primary-200 dark:border-primary-800 p-6">
+                <h2 className="font-semibold text-gray-900 dark:text-white mb-3">📊 综合评估</h2>
+                <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{benchmarkResult.overall_assessment}</p>
+              </div>
+            )}
+
+            {benchmarkResult.recommendation && (
+              <div className="bg-green-50 dark:bg-green-900/20 rounded-2xl border border-green-200 dark:border-green-800 p-6">
+                <h2 className="font-semibold text-green-800 dark:text-green-300 mb-2">💡 投资建议</h2>
+                <p className="text-green-700 dark:text-green-400">{benchmarkResult.recommendation}</p>
               </div>
             )}
 
