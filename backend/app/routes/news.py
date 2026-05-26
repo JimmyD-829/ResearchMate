@@ -120,3 +120,15 @@ def get_news(
             items = NewsService.get_all_news(db, limit, offset)
 
     return {"total": total, "items": items}
+
+@router.post("/news/update")
+async def update_news_daily(db: Session = Depends(get_db)):
+    from ..services.news_scheduler import NewsScheduler
+    result = NewsScheduler.daily_news_update()
+    return result
+
+@router.post("/news/force-update")
+async def force_update_news(db: Session = Depends(get_db)):
+    from ..services.news_scheduler import NewsScheduler
+    result = NewsScheduler.force_update_all()
+    return result

@@ -71,10 +71,10 @@ class ReportService:
             return {"error": "无法提取PDF文本内容。请确保文件包含可提取的文字（非纯图片）。"}
 
         ai_client = AIClient()
-        result = ai_client.parse_financial_report(text)
+        result_dict = ai_client.analyze_financial_report(text)
 
-        try:
-            data = json.loads(result)
+        if isinstance(result_dict, dict):
+            data = result_dict
             data["processing_info"] = {
                 "total_pages": pdf_info.get("total_pages", 0),
                 "extracted_pages": min(30, pdf_info.get("total_pages", 0)),
@@ -82,7 +82,7 @@ class ReportService:
                 "note": f"已提取前{min(30, pdf_info.get('total_pages', 0))}页内容进行分析"
             }
             return data
-        except json.JSONDecodeError:
+        else:
             return {"company_name": report.company_name, "raw_text_length": len(text)}
     
     @staticmethod

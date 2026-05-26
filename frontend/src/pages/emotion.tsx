@@ -70,12 +70,24 @@ export default function EmotionPage() {
         emotionApi.getScore(company),
         emotionApi.getTrend(company, 30),
       ]);
-      const scoreResult: any = scoreResponse.data;
-      const trendResult: any = trendResponse.data;
-      setEmotionScore(scoreResult?.data || scoreResult);
-      setEmotionTrend(trendResult?.data || trendResult);
+      const scoreResult: any = scoreResponse?.data || scoreResponse;
+      const trendResult: any = trendResponse?.data || trendResponse;
+
+      const scoreData = scoreResult?.data || scoreResult;
+      const trendData = trendResult?.data || trendResult;
+
+      if (scoreData && trendData) {
+        setEmotionScore(scoreData);
+        setEmotionTrend(trendData);
+      } else {
+        console.error('Empty emotion data received');
+        setEmotionScore(null);
+        setEmotionTrend(null);
+      }
     } catch (err) {
-      console.error('获取情绪数据失败');
+      console.error('获取情绪数据失败:', err);
+      setEmotionScore(null);
+      setEmotionTrend(null);
     } finally {
       setLoading(false);
     }

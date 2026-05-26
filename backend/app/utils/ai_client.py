@@ -338,28 +338,93 @@ class AIClient:
             base_roe = 10 + (hash_val % 25)
             base_debt = 25 + (hash_val % 50)
 
-            industries = [
-                ("金融服务业", "行业平均", "监管合规", "数字化转型"),
-                ("制造业", "产能扩张", "成本控制", "技术升级"),
-                ("消费品", "品牌建设", "渠道拓展", "消费升级"),
-                ("科技行业", "研发创新", "用户增长", "生态建设"),
-                ("能源行业", "绿色转型", "效率提升", "新能源布局"),
-                ("医疗健康", "创新药研发", "市场准入", "国际化"),
-                ("房地产", "去库存", "现金流管理", "转型服务"),
-                ("交通运输", "网络优化", "成本控制", "智能化")
-            ]
+            def detect_industry(name: str) -> tuple:
+                name_lower = name.lower()
 
-            industry_idx = hash_val % len(industries)
-            industry, adv1, adv2, opp1 = industries[industry_idx]
+                if any(k in name_lower for k in ["银行", "保险", "证券", "金融", "平安", "招商", "中信", "浦发", "兴业"]):
+                    return ("金融服务业", "监管合规", "数字化转型", "风险控制",
+                            ["资本充足率优良", "资产质量稳健", "科技赋能业务", "客户基础庞大"],
+                            ["净息差收窄压力", "信用风险管控", "竞争加剧"])
+                elif any(k in name_lower for k in ["新能源", "储能", "光伏", "风电", "电池", "锂电", "宁德", "隆基", "思格", "比亚迪", "tesla"]):
+                    return ("新能源与储能行业", "技术领先", "产能扩张", "政策支持",
+                            ["技术壁垒高", "成本优势明显", "市场需求旺盛", "政策红利持续"],
+                            ["补贴退坡影响", "技术迭代快", "产能过剩风险"])
+                elif any(k in name_lower for k in ["汽车", "制造", "万向", "格力", "美的", "海尔", "富士康"]):
+                    return ("高端制造业", "智能制造", "供应链优化", "技术创新",
+                            ["产业链完整", "技术积累深厚", "规模效应显著", "品质控制优秀"],
+                            ["原材料成本波动", "国际贸易摩擦", "劳动力成本上升"])
+                elif any(k in name_lower for k in ["科技", "腾讯", "阿里", "字节", "百度", "华为", "小米", "openai", "微软", "apple", "nvidia", "meta"]):
+                    return ("科技互联网行业", "研发创新", "用户增长", "生态建设",
+                            ["技术实力雄厚", "用户粘性高", "商业模式成熟", "现金流充沛"],
+                            ["监管政策风险", "竞争激烈", "创新投入大"])
+                elif any(k in name_lower for k in ["茅台", "五粮液", "消费", "零售", "京东", "拼多多", "美团", "雅虎", "亚马逊"]):
+                    return ("消费品与零售", "品牌建设", "渠道拓展", "消费升级",
+                            ["品牌价值高", "渠道网络完善", "用户忠诚度强", "产品矩阵丰富"],
+                            ["消费疲软风险", "库存管理挑战", "线上冲击"])
+                elif any(k in name_lower for k in ["能源", "电力", "石油", "石化", "煤炭", "天然气"]):
+                    return ("传统能源行业", "绿色转型", "效率提升", "清洁能源布局",
+                            ["资源储备丰富", "现金流稳定", "市场份额大", "基础设施完善"],
+                            ["环保压力增大", "价格波动剧烈", "转型成本高"])
+                elif any(k in name_lower for k in ["医药", "生物", "健康", "恒瑞", "药明", "迈瑞"]):
+                    return ("医疗健康产业", "创新药研发", "市场准入", "国际化",
+                            ["研发能力强", "管线丰富", "政策支持", "市场需求刚性"],
+                            ["审批周期长", "研发风险高", "集采降价压力"])
+                elif any(k in name_lower for k in ["地产", "万科", "碧桂园", "保利", "恒大"]):
+                    return ("房地产与建筑", "去库存", "现金流管理", "转型服务",
+                            ["土地储备优质", "品牌影响力强", "项目经验丰富"],
+                            ["资金链压力大", "政策调控严格", "去化周期长"])
+                elif any(k in name_lower for k in ["交通", "物流", "快递", "航空", "铁路", "港口", "顺丰", "中通"]):
+                    return ("交通运输与物流", "网络优化", "成本控制", "智能化升级",
+                            ["网络覆盖广", "运营效率高", "客户基础稳固", "规模效应明显"],
+                            ["燃油成本波动", "竞争白热化", "基础设施投资大"])
+                elif any(k in name_lower for k in ["半导体", "芯片", "电子", "中芯", "台积电", "高通", "英特尔"]):
+                    return ("半导体与电子信息", "技术研发", "产能扩充", "国产替代",
+                            ["技术门槛高", "市场需求旺盛", "国家战略支持", "盈利能力强"],
+                            ["研发投入巨大", "周期性波动强", "地缘政治风险"])
+                elif any(k in name_lower for k in ["教育", "新东方", "好未来", "网易有道"]):
+                    return ("教育培训行业", "内容质量", "技术应用", "合规经营",
+                            ["品牌知名度高", "教研体系完善", "用户需求稳定"],
+                            ["政策监管严格", "获客成本高", "同质化竞争"])
+                else:
+                    industries_list = [
+                        ("现代服务业", "服务创新", "数字化运营", "品质提升"),
+                        ("综合型企业集团", "多元化发展", "协同效应", "资源整合"),
+                        ("新兴成长企业", "快速扩张", "市场占有", "模式创新")
+                    ]
+                    idx = hash_val % len(industries_list)
+                    base = industries_list[idx]
+                    return (*base, ["商业模式独特", "成长潜力大", "灵活性强"], ["规模效应不足", "抗风险能力待加强"])
 
-            peer_names = ["行业龙头A", "主要竞争者B", "新兴企业C"]
-            peer_scores = [75 + (hash_val % 20), 70 + ((hash_val+3) % 18), 65 + ((hash_val+7) % 15)]
-            peer_growths = [f"{12 + (hash_val % 15)}%", f"{8 + ((hash_val+2) % 12)}%", f"{5 + ((hash_val+4) % 10)}%"]
+            industry, adv1, adv2, opp1, strengths_list, weaknesses_list = detect_industry(company_name)
+
+            peer_names_map = {
+                "金融服务业": ("工商银行", "建设银行"),
+                "新能源与储能行业": ("宁德时代", "比亚迪"),
+                "高端制造业": ("美的集团", "格力电器"),
+                "科技互联网行业": ("阿里巴巴", "字节跳动"),
+                "消费品与零售": ("京东集团", "拼多多"),
+                "传统能源行业": ("中国石油", "中国石化"),
+                "医疗健康产业": ("恒瑞医药", "药明康德"),
+                "房地产与建筑": ("万科企业", "保利发展"),
+                "交通运输与物流": ("顺丰控股", "中通快递"),
+                "半导体与电子信息": ("中芯国际", "韦尔股份"),
+                "教育培训行业": ("新东方在线", "好未来"),
+                "现代服务业": ("美团", "滴滴出行"),
+                "综合型企业集团": ("复星国际", "海尔智家"),
+                "新兴成长企业": ("蔚来汽车", "小鹏汽车")
+            }
+
+            peer_names = peer_names_map.get(industry, ("行业龙头A", "主要竞争者B"))
+            peer_scores = [75 + (hash_val % 20), 70 + ((hash_val+3) % 18)]
+            peer_growths = [f"{12 + (hash_val % 15)}%", f"{8 + ((hash_val+2) % 12)}%"]
+
+            assessment_levels = ["面临一定挑战", "保持稳定", "表现良好", "较为突出"]
+            focus_areas = ["成本控制能力", "技术创新投入", "市场拓展策略", "运营管理效率"]
 
             return {
                 "market_share": f"{5 + (hash_val % 20)}%",
-                "ranking": f"Top {10 + (hash_val % 40)}%",
-                "advantages": [f"{industry}经验丰富", adv1, adv2, f"客户基础稳固"],
+                "ranking": f"Top {10 + (hash_val % 40)}",
+                "advantages": [f"在{industry}领域深耕多年", adv1, adv2, f"具备差异化竞争优势"],
                 "revenue_growth": f"{base_revenue}%",
                 "industry_revenue_avg": f"{base_revenue - 5 + (hash_val % 6)}%",
                 "revenue_assessment": ["低于行业平均", "接近行业平均", "优于行业平均", "显著优于行业平均"][hash_val % 4],
@@ -372,10 +437,10 @@ class AIClient:
                 "debt_ratio": f"{base_debt}%",
                 "industry_debt_avg": f"{base_debt - 5 + (hash_val % 10)}%",
                 "debt_assessment": ["负债率偏高需关注", "负债率处于合理区间", "财务结构稳健", "几乎无负债"][min(hash_val % 4, 3)],
-                "strengths": [f"在{industry}有一定积累", "业务模式成熟", "区域市场优势明显"],
-                "weaknesses": ["增长速度放缓", "创新能力待加强", "抗风险能力有限"],
-                "opportunities": [opp1, "政策支持力度加大", "市场需求持续增长"],
-                "threats": ["行业竞争加剧", "原材料/人力成本上升", "政策法规变化风险"],
+                "strengths": strengths_list,
+                "weaknesses": weaknesses_list,
+                "opportunities": [opp1, "政策支持力度加大", "市场需求持续增长", "行业整合带来机遇"],
+                "threats": ["行业竞争加剧", "原材料/人力成本上升", "政策法规变化风险", "宏观经济波动影响"],
                 "peer1": peer_names[0],
                 "peer1_score": peer_scores[0],
                 "peer1_growth": peer_growths[0],
@@ -383,7 +448,7 @@ class AIClient:
                 "peer2_score": peer_scores[1],
                 "peer2_growth": peer_growths[1],
                 "self_score": 80 + (hash_val % 15),
-                "overall_assessment": f"{company_name}作为{industry}的一员，目前营收增速为{base_revenue}%，利润率为{base_profit}%，整体财务状况{['面临一定挑战', '保持稳定', '表现良好', '较为突出'][hash_val % 4]}。建议关注其{['成本控制能力', '技术创新投入', '市场拓展策略', '运营管理效率'][hash_val % 4]}方面的表现。",
+                "overall_assessment": f"{company_name}作为{industry}的重要参与者，目前营收增速为{base_revenue}%，利润率为{base_profit}%，整体财务状况{assessment_levels[hash_val % 4]}。建议关注其{focus_areas[hash_val % 4]}方面的表现。",
                 "recommendation": ["观望 - 需要进一步观察基本面改善情况", "中性 - 适合稳健型投资者关注", "推荐 - 具备一定的投资价值", "强烈推荐 - 基本面扎实，值得重点关注"][hash_val % 4]
             }
 
