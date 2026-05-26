@@ -38,11 +38,10 @@ export default function EmotionPage() {
 
   useEffect(() => {
     if (!user) {
-      router.push('/login');
       return;
     }
     fetchFollows();
-  }, [user, router]);
+  }, [user]);
 
   useEffect(() => {
     if (selectedCompany) {

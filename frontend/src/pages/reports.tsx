@@ -42,12 +42,28 @@ export default function ReportsPage() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file && file.type === 'application/pdf') {
+    if (!file) {
+      setSelectedFile(null);
+      setError('请选择文件');
+      return;
+    }
+
+    const allowedTypes = [
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-excel',
+      'text/csv'
+    ];
+
+    const fileExt = file.name.toLowerCase().split('.').pop();
+    const isValidType = allowedTypes.includes(file.type) || ['pdf', 'xlsx', 'xls', 'csv'].includes(fileExt || '');
+
+    if (isValidType) {
       setSelectedFile(file);
       setError('');
     } else {
       setSelectedFile(null);
-      setError('请选择PDF文件');
+      setError('仅支持 PDF、Excel (xlsx/xls)、CSV 格式文件');
     }
   };
 
@@ -83,9 +99,38 @@ export default function ReportsPage() {
         setUploadStep('idle');
         setUploadProgress(0);
       }, 1500);
-    } catch (err) {
+    } catch (err: any) {
       setUploadStep('error');
-      setError('上传失败，请重试');
+      console.error('上传错误详情:', err);
+
+      if (err.code === 'ECONNABORTED') {
+        setError('请求超时，服务器响应时间过长。请稍后重试或检查网络连接。');
+      } else if (err.response) {
+        const status = err.response.status;
+        const detail = err.response.data?.detail || err.response.data?.message;
+
+        if (status === 400 && detail) {
+          setError(detail);
+        } else if (status === 401) {
+          setError('登录已过期，请重新登录后重试');
+        } else if (status === 413) {
+          setError('文件过大（最大支持50MB），请压缩后重新上传');
+        } else if (status >= 500) {
+          setError(`服务器内部错误 (${status})，请稍后重试`);
+        } else {
+          setError(`上传失败: ${detail || `HTTP ${status}`}`);
+        }
+      } else if (err.message) {
+        if (err.message.includes('Network Error')) {
+          setError('网络连接失败，请检查网络后重试');
+        } else if (err.message.includes('timeout')) {
+          setError('请求超时，请稍后重试');
+        } else {
+          setError(`上传失败: ${err.message}`);
+        }
+      } else {
+        setError('上传失败，请检查文件格式和网络后重试');
+      }
     } finally {
       setUploading(false);
     }
@@ -132,7 +177,7 @@ export default function ReportsPage() {
             </div>
             <div>
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">上传财报</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">支持PDF格式文件</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">支持 PDF、Excel、CSV 格式文件</p>
             </div>
           </div>
           
