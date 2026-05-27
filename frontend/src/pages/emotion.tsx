@@ -68,25 +68,45 @@ export default function EmotionPage() {
     }
   };
 
-  const getFallbackEmotionData = () => ({
-    score: {
-      company_name: selectedCompany || '平安银行',
-      current_score: 15.5,
-      current_label: 'positive',
-      last_7d_avg: 12.3,
-      last_30d_avg: 8.7,
-      article_count: 156,
-      last_updated: new Date().toISOString()
-    } as EmotionScore,
-    trend: {
-      company_name: selectedCompany || '平安银行',
-      trend: Array.from({ length: 30 }, (_, i) => ({
-        date: new Date(Date.now() - (29 - i) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        daily_score: Math.sin(i / 5) * 20 + 10 + (Math.random() - 0.5) * 10,
-        article_count: Math.floor(Math.random() * 10) + 3
-      }))
-    } as EmotionTrendResponse
-  });
+  const getFallbackEmotionData = (company: string) => {
+    const companyEmotions: Record<string, { score: number; label: string; avg7d: number; avg30d: number; articles: number }> = {
+      '平安银行': { score: 18.2, label: 'positive', avg7d: 15.6, avg30d: 12.1, articles: 189 },
+      '贵州茅台': { score: 25.8, label: 'positive', avg7d: 22.3, avg30d: 19.5, articles: 234 },
+      '比亚迪': { score: 32.1, label: 'positive', avg7d: 28.7, avg30d: 24.3, articles: 312 },
+      '腾讯控股': { score: 12.4, label: 'positive', avg7d: 10.2, avg30d: 8.9, articles: 167 },
+      '宁德时代': { score: -8.5, label: 'negative', avg7d: -5.2, avg30d: -2.1, articles: 145 },
+      '中芯国际': { score: -15.3, label: 'negative', avg7d: -12.1, avg30d: -8.7, articles: 98 },
+      '隆基绿能': { score: -22.6, label: 'negative', avg7d: -18.9, avg30d: -14.2, articles: 87 },
+      'Microsoft Corp': { score: 28.5, label: 'positive', avg7d: 25.1, avg30d: 21.3, articles: 278 },
+      '字节跳动': { score: 5.3, label: 'neutral', avg7d: 3.1, avg30d: 1.8, articles: 156 },
+      '阿里巴巴': { score: -3.2, label: 'neutral', avg7d: -1.5, avg30d: 0.8, articles: 201 },
+    };
+
+    const defaultEmotion = { score: 8.5, label: 'positive' as const, avg7d: 6.2, avg30d: 4.1, articles: 120 };
+    const emotion = companyEmotions[company] || companyEmotions[company.replace(/\s/g, '')] || defaultEmotion;
+
+    const seed = company.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+
+    return {
+      score: {
+        company_name: company,
+        current_score: emotion.score,
+        current_label: emotion.label,
+        last_7d_avg: emotion.avg7d,
+        last_30d_avg: emotion.avg30d,
+        article_count: emotion.articles,
+        last_updated: new Date().toISOString()
+      } as EmotionScore,
+      trend: {
+        company_name: company,
+        trend: Array.from({ length: 30 }, (_, i) => ({
+          date: new Date(Date.now() - (29 - i) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          daily_score: Math.sin((i + seed) / 5) * 25 + emotion.avg30d + (Math.random() - 0.5) * 8,
+          article_count: Math.floor(Math.random() * 8) + 2
+        }))
+      } as EmotionTrendResponse
+    };
+  };
 
   const fetchEmotionData = async (company: string) => {
     setLoading(true);
@@ -107,14 +127,14 @@ export default function EmotionPage() {
         setEmotionTrend(trendData);
       } else {
         console.warn('Empty emotion data received, using fallback');
-        const fallback = getFallbackEmotionData();
+        const fallback = getFallbackEmotionData(company);
         setEmotionScore(fallback.score);
         setEmotionTrend(fallback.trend);
         setError('使用示例数据（后端未返回数据）');
       }
     } catch (err: any) {
       console.error('获取情绪数据失败，使用示例数据:', err.message);
-      const fallback = getFallbackEmotionData();
+      const fallback = getFallbackEmotionData(company);
       setEmotionScore(fallback.score);
       setEmotionTrend(fallback.trend);
       setError(err.message || '网络连接失败，显示示例数据');
@@ -270,15 +290,15 @@ export default function EmotionPage() {
                         <span className="text-gray-500 dark:text-gray-400 text-lg">分</span>
                       </div>
                     </div>
-                    <div className={`px-6 py-3 rounded-xl ${
-                      emotionScore.current_score > 20 ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' :
-                      emotionScore.current_score < -20 ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' :
-                      'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-400'
+                    <div className={`px-6 py-3 rounded-xl font-bold text-xl ${
+                      emotionScore.current_label === 'positive'
+                        ? 'bg-green-500 dark:bg-green-600 text-white shadow-lg shadow-green-500/30'
+                        : emotionScore.current_label === 'negative'
+                        ? 'bg-red-500 dark:bg-red-600 text-white shadow-lg shadow-red-500/30'
+                        : 'bg-yellow-500 dark:bg-yellow-600 text-white shadow-lg shadow-yellow-500/30'
                     }`}>
-                      <p className="font-bold text-xl">
-                        {emotionScore.current_label === 'positive' ? '积极' :
-                         emotionScore.current_label === 'negative' ? '消极' : '中性'}
-                      </p>
+                      {emotionScore.current_label === 'positive' ? '积极' :
+                       emotionScore.current_label === 'negative' ? '消极' : '中性'}
                     </div>
                   </div>
 
