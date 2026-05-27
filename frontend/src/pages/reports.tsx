@@ -78,6 +78,84 @@ export default function ReportsPage() {
     }
   };
 
+  const loadSampleReport = async () => {
+    setUploading(true);
+    setError('');
+    try {
+      await simulateProgress(0, 30, 800, 'uploading');
+      await simulateProgress(30, 60, 1200, 'parsing');
+      await simulateProgress(60, 90, 1500, 'analyzing');
+
+      const sampleData: FinancialReport = {
+        id: 'sample-001',
+        user_id: 'demo-user',
+        company_name: '贵州茅台',
+        stock_code: '600519',
+        report_period: '2025年度',
+        upload_time: new Date().toISOString(),
+        status: 'success' as const,
+        revenue: 147699000000,
+        net_profit: 74800000000,
+        cash_flow: 82500000000,
+        debt_ratio: 18.5,
+        gross_margin: 91.5,
+        ai_summary: `## 贵州茅台 (600519) 2025年度财务分析报告
+
+### 📊 核心财务指标
+
+**营业收入**: 1,476.99亿元 (+15.2% YoY)
+**净利润**: 748.00亿元 (+16.8% YoY)
+**经营现金流**: 825.00亿元 (+12.3% YoY)
+**资产负债率**: 18.5% (-1.2pp)
+**毛利率**: 91.5% (+0.3pp)
+
+### 🎯 关键发现
+
+#### ✅ **优势亮点**
+1. **盈利能力卓越**: 毛利率高达91.5%，位居A股榜首
+2. **现金流充沛**: 经营性现金流/净利润比率达110%，现金创造能力强
+3. **品牌护城河深**: 茅台品牌价值持续提升，定价权稳固
+4. **财务结构健康**: 资产负债率仅18.5%，几乎无有息负债
+5. **分红慷慨**: 预计2025年分红率超52%，股息率约2.5%
+
+#### ⚠️ **风险提示**
+1. **估值偏高**: 当前PE(TTM)约35倍，高于历史均值
+2. **增速放缓**: 营收增速从20%+降至15%，高基数效应显现
+3. **政策风险**: 白酒消费税改革可能影响利润率
+4. **竞争加剧**: 高端白酒市场竞争白热化，五粮液、国窖1573追赶
+5. **库存压力**: 经销商库存周期延长至45天（vs 历史平均30天）
+
+### 💡 投资建议
+
+**评级**: ⭐⭐⭐⭐ (推荐持有)
+
+**目标价**: 1,950-2,050元 (基于2026年32x PE)
+
+**核心逻辑**:
+- 短期：春节旺季+提价预期催化股价
+- 中期：直销渠道占比提升至50%+，增厚利润
+- 长期：国际化布局+i茅台数字化赋能
+
+**风险收益比**: 在当前价位具备防御属性，适合长期配置`
+      };
+
+      await simulateProgress(90, 100, 300, 'success');
+      setReports(prev => [sampleData, ...prev]);
+      setUploadStep('success');
+      setSelectedFile(null);
+      setTimeout(() => {
+        setUploadStep('idle');
+        setUploadProgress(0);
+      }, 2000);
+    } catch (err) {
+      console.error('加载示例数据失败:', err);
+      setError('加载示例数据失败');
+      setUploadStep('error');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleUpload = async () => {
     if (!selectedFile) return;
 
@@ -186,10 +264,15 @@ export default function ReportsPage() {
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <p className="text-red-600 dark:text-red-400 text-sm font-medium">{error}</p>
-                  <div className="mt-2 text-xs text-red-500 dark:text-red-400 space-y-1">
-                    <p>• 检查网络连接是否正常</p>
-                    <p>• 确认后端服务 (Render.com) 正在运行</p>
-                    <p>• 文件大小不超过50MB，格式为PDF/Excel/CSV</p>
+                  <div className="mt-3 text-xs text-red-500 dark:text-red-400 space-y-1.5">
+                    <p>🔍 **常见原因及解决方案**:</p>
+                    <p>• ⏰ **服务器超时**: Render免费版首次请求需50秒+，请耐心等待或使用示例数据</p>
+                    <p>• 📄 **PDF格式问题**: 扫描件/加密PDF无法解析，请使用文字版PDF</p>
+                    <p>• 🌐 **网络连接**: 检查网络，或尝试刷新页面后重试</p>
+                    <p>• 📦 **文件大小**: 请确保文件小于50MB</p>
+                    <div className="mt-2 pt-2 border-t border-red-200 dark:border-red-700">
+                      <p className="font-medium text-red-600 dark:text-red-400">💡 推荐方案: 点击下方"✨ 查看示例分析"按钮，立即体验完整功能！</p>
+                    </div>
                   </div>
                 </div>
                 <button
@@ -244,6 +327,20 @@ export default function ReportsPage() {
                 已选择: {selectedFile.name}
               </p>
             )}
+          </div>
+
+          <div className="mt-6 text-center">
+            <div className="relative inline-block">
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl blur opacity-20"></div>
+              <button
+                onClick={loadSampleReport}
+                disabled={uploading}
+                className="relative px-8 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 disabled:from-gray-400 disabled:to-gray-400 text-white font-semibold rounded-xl transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+              >
+                ✨ 查看示例分析（无需上传）
+              </button>
+            </div>
+            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">体验完整分析功能，了解报告样式</p>
           </div>
           
           {selectedFile && uploadStep === 'idle' && (
