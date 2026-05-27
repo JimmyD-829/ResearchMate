@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import Layout from '../components/Layout';
 import ComplianceNote from '../components/ComplianceNote';
 import { newsApi, emotionApi, Follow, EmotionScore, EmotionTrendResponse } from '../services/api';
+import { dataCache, getDataFreshnessLabel, getSourceBadge } from '../services/dataCache';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -33,6 +34,8 @@ export default function EmotionPage() {
   const [emotionTrend, setEmotionTrend] = useState<EmotionTrendResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [dataSource, setDataSource] = useState<'live' | 'cached' | 'fallback' | null>(null);
+  const [dataAge, setDataAge] = useState<number | null>(null);
 
   const { user } = useAuth();
   const router = useRouter();
@@ -111,33 +114,61 @@ export default function EmotionPage() {
   const fetchEmotionData = async (company: string) => {
     setLoading(true);
     setError(null);
+    
     try {
-      const [scoreResponse, trendResponse] = await Promise.all([
-        emotionApi.getScore(company),
-        emotionApi.getTrend(company, 30),
-      ]);
-      const scoreResult: any = scoreResponse?.data || scoreResponse;
-      const trendResult: any = trendResponse?.data || trendResponse;
-
-      const scoreData = scoreResult?.data || scoreResult;
-      const trendData = trendResult?.data || trendResult;
-
-      if (scoreData && trendData) {
-        setEmotionScore(scoreData);
-        setEmotionTrend(trendData);
+      // 使用智能缓存获取数据
+      const cacheKey = `emotion-${company}`;
+      const result = await dataCache.fetchWithCache(
+        cacheKey,
+        async () => {
+          const [scoreResponse, trendResponse] = await Promise.all([
+            emotionApi.getScore(company),
+            emotionApi.getTrend(company, 30),
+          ]);
+          
+          const scoreResult: any = scoreResponse?.data || scoreResponse;
+          const trendResult: any = trendResponse?.data || trendResponse;
+          
+          const scoreData = scoreResult?.data || scoreResult;
+          const trendData = trendResult?.data || trendResult;
+          
+          if (!scoreData || !trendData) {
+            throw new Error('Empty response from server');
+          }
+          
+          return { score: scoreData, trend: trendData };
+        },
+        () => {
+          // Fallback函数 - 返回本地生成的数据
+          const fallback = getFallbackEmotionData(company);
+          return { score: fallback.score, trend: fallback.trend };
+        }
+      );
+      
+      setEmotionScore(result.data.score);
+      setEmotionTrend(result.data.trend);
+      setDataSource(result.source);
+      
+      // 更新数据年龄
+      const age = dataCache.getAgeInSeconds(cacheKey);
+      setDataAge(age);
+      
+      // 根据数据来源设置错误提示
+      if (result.source === 'fallback') {
+        setError('显示示例数据（后端服务不可用）');
+      } else if (result.source === 'cached') {
+        setError(null); // 缓存数据不显示错误
       } else {
-        console.warn('Empty emotion data received, using fallback');
-        const fallback = getFallbackEmotionData(company);
-        setEmotionScore(fallback.score);
-        setEmotionTrend(fallback.trend);
-        setError('使用示例数据（后端未返回数据）');
+        setError(null); // 实时数据正常
       }
     } catch (err: any) {
-      console.error('获取情绪数据失败，使用示例数据:', err.message);
+      console.error('获取情绪数据完全失败:', err.message);
       const fallback = getFallbackEmotionData(company);
       setEmotionScore(fallback.score);
       setEmotionTrend(fallback.trend);
-      setError(err.message || '网络连接失败，显示示例数据');
+      setDataSource('fallback');
+      setDataAge(0);
+      setError('网络连接失败，显示示例数据（非实时）');
     } finally {
       setLoading(false);
     }
@@ -300,6 +331,27 @@ export default function EmotionPage() {
                       {emotionScore.current_label === 'positive' ? '积极' :
                        emotionScore.current_label === 'negative' ? '消极' : '中性'}
                     </div>
+                    
+                    {dataSource && (
+                      <div className="mt-3 flex items-center gap-2 text-xs">
+                        <span className={`px-2 py-1 rounded-md font-medium ${getSourceBadge(dataSource).className}`}>
+                          {getSourceBadge(dataSource).text}
+                        </span>
+                        {dataAge !== null && (
+                          <span className={`flex items-center gap-1 ${
+                            dataAge < 300 ? 'text-green-500' :
+                            dataAge < 1800 ? 'text-yellow-500' : 'text-red-500'
+                          }`}>
+                            {getDataFreshnessLabel(dataAge).icon} {getDataFreshnessLabel(dataAge).label}
+                          </span>
+                        )}
+                        {dataSource !== 'live' && (
+                          <span className="text-gray-400 dark:text-gray-500">
+                            (非实时数据，仅供参考)
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-3 gap-5">

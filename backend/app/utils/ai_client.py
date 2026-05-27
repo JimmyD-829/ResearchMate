@@ -49,12 +49,13 @@ class AIClient:
     def industry_benchmark(self, company_name: str) -> str:
         import json
         import random
+        from datetime import date
 
         company_data = self._get_company_specific_data(company_name)
 
         benchmark_data = {
             "company_name": company_name,
-            "analysis_date": "2026-05-26",
+            "analysis_date": date.today().isoformat(),
             "industry_positioning": {
                 "market_share": company_data["market_share"],
                 "industry_ranking": company_data["ranking"],

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { monitorApi } from '../services/api';
+import { dataCache, getDataFreshnessLabel, getSourceBadge } from '../services/dataCache';
 import Layout from '../components/Layout';
 
 interface DashboardData {
@@ -66,6 +67,8 @@ const MonitorPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'industry' | 'news' | 'emotion' | 'system'>('overview');
   const [usingFallback, setUsingFallback] = useState(false);
+  const [dataSource, setDataSource] = useState<'live' | 'cached' | 'fallback' | null>(null);
+  const [dataAge, setDataAge] = useState<number | null>(null);
 
   useEffect(() => {
     fetchDashboardData();
@@ -151,21 +154,51 @@ const MonitorPage: React.FC = () => {
   const fetchDashboardData = async () => {
     setLoading(true);
     setError(null);
+    
     try {
-      const response = await monitorApi.getDashboard();
-      const data: any = response.data;
-      if (data.success) {
-        setDashboardData(data.data);
+      // 使用智能缓存获取数据
+      const cacheKey = 'monitor-dashboard';
+      const result = await dataCache.fetchWithCache(
+        cacheKey,
+        async () => {
+          const response = await monitorApi.getDashboard();
+          const data: any = response.data;
+          
+          if (data.success) {
+            return data.data;
+          } else {
+            throw new Error(data.message || 'Invalid response');
+          }
+        },
+        () => getFallbackData(), // Fallback函数
+        10 * 60 * 1000 // 监控数据缓存10分钟
+      );
+      
+      setDashboardData(result.data);
+      setDataSource(result.source);
+      
+      // 更新数据年龄
+      const age = dataCache.getAgeInSeconds(cacheKey);
+      setDataAge(age);
+      
+      if (result.source === 'fallback') {
+        setUsingFallback(true);
+        setError('后端服务不可用，显示本地缓存数据');
+      } else if (result.source === 'cached') {
         setUsingFallback(false);
+        setError(null); // 缓存数据不显示为错误
       } else {
-        throw new Error(data.message || 'Invalid response');
+        setUsingFallback(false);
+        setError(null); // 实时数据正常
       }
     } catch (err: any) {
-      console.warn('Monitor API failed, using fallback data:', err.message);
+      console.error('Monitor API completely failed:', err.message);
       setError(err.message || 'Failed to load dashboard data');
       const fallbackData = getFallbackData();
       setDashboardData(fallbackData);
       setUsingFallback(true);
+      setDataSource('fallback');
+      setDataAge(0);
     } finally {
       setLoading(false);
     }
@@ -264,9 +297,25 @@ const MonitorPage: React.FC = () => {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Data Quality Monitor</h1>
-          <p className="mt-2 text-sm text-gray-600">
-            Last updated: {new Date(dashboardData.generated_at).toLocaleString()}
-          </p>
+          <div className="mt-2 flex items-center gap-3 text-sm text-gray-600">
+            <span>Last updated: {new Date(dashboardData.generated_at).toLocaleString()}</span>
+            
+            {dataSource && (
+              <>
+                <span className={`px-2 py-0.5 rounded text-xs font-medium ${getSourceBadge(dataSource).className}`}>
+                  {getSourceBadge(dataSource).text}
+                </span>
+                {dataAge !== null && (
+                  <span className={`flex items-center gap-1 ${
+                    dataAge < 300 ? 'text-green-600' :
+                    dataAge < 600 ? 'text-yellow-600' : 'text-red-600'
+                  }`}>
+                    {getDataFreshnessLabel(dataAge).icon} {getDataFreshnessLabel(dataAge).label}
+                  </span>
+                )}
+              </>
+            )}
+          </div>
         </div>
 
         {/* Overall Score Card */}
