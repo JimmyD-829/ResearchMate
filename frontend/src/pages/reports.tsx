@@ -16,10 +16,17 @@ export default function ReportsPage() {
   const [uploadStep, setUploadStep] = useState<UploadStep>('idle');
   const [uploadProgress, setUploadProgress] = useState(0);
 
-  // 鍒嗛〉鐘舵€?  const [currentPage, setCurrentPage] = useState(1);
+  
+  // 分页状态
+  const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
-  // 澶辫触璇︽儏寮圭獥鐘舵€?  const [selectedFailedReport, setSelectedFailedReport] = useState<FinancialReport | null>(null);
+  
+  // 失败详情弹窗状态
+  const [selectedFailedReport, setSelectedFailedReport] = useState<FinancialReport | null>(null);
+
+  // 解析历史容器ref（用于分页滚动定位）
+  const historySectionRef = useRef<HTMLDivElement>(null);
 
   const { user } = useAuth();
   const router = useRouter();
@@ -680,6 +687,8 @@ export default function ReportsPage() {
     </Layout>
   );
 }
+
+
 
 
 
