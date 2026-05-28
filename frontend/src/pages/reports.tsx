@@ -16,6 +16,13 @@ export default function ReportsPage() {
   const [uploadStep, setUploadStep] = useState<UploadStep>('idle');
   const [uploadProgress, setUploadProgress] = useState(0);
 
+  // 分页状态
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+
+  // 失败详情弹窗状态
+  const [selectedFailedReport, setSelectedFailedReport] = useState<FinancialReport | null>(null);
+
   const { user } = useAuth();
   const router = useRouter();
 
@@ -38,6 +45,17 @@ export default function ReportsPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // 分页计算
+  const totalPages = Math.ceil(reports.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentReports = reports.slice(startIndex, endIndex);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -79,15 +97,23 @@ export default function ReportsPage() {
   };
 
   const loadSampleReport = async () => {
+    console.log('🚀 点击了示例分析按钮');
     setUploading(true);
     setError('');
+    setUploadStep('uploading');
+    setUploadProgress(0);
+    
     try {
+      console.log('开始模拟进度...');
       await simulateProgress(0, 30, 800, 'uploading');
+      console.log('上传完成，开始解析...');
       await simulateProgress(30, 60, 1200, 'parsing');
+      console.log('解析完成，开始分析...');
       await simulateProgress(60, 90, 1500, 'analyzing');
 
+      console.log('生成示例数据...');
       const sampleData: FinancialReport = {
-        id: 'sample-001',
+        id: 'sample-' + Date.now(),
         user_id: 'demo-user',
         company_name: '贵州茅台',
         stock_code: '600519',
@@ -139,17 +165,21 @@ export default function ReportsPage() {
 **风险收益比**: 在当前价位具备防御属性，适合长期配置`
       };
 
+      console.log('示例数据生成完成，更新状态...');
       await simulateProgress(90, 100, 300, 'success');
       setReports(prev => [sampleData, ...prev]);
       setUploadStep('success');
       setSelectedFile(null);
+      
       setTimeout(() => {
         setUploadStep('idle');
         setUploadProgress(0);
       }, 2000);
+      
+      console.log('✅ 示例分析完成！');
     } catch (err) {
-      console.error('加载示例数据失败:', err);
-      setError('加载示例数据失败');
+      console.error('❌ 加载示例数据失败:', err);
+      setError('加载示例数据失败: ' + (err as Error).message);
       setUploadStep('error');
     } finally {
       setUploading(false);
@@ -378,60 +408,290 @@ export default function ReportsPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
               <p className="text-gray-600 dark:text-gray-400">暂无财报解析记录</p>
+              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">上传财报或点击"查看示例分析"开始体验</p>
             </div>
           ) : (
-            <div className="divide-y divide-gray-200 dark:divide-gray-700">
-              {reports.map((report) => (
-                <div key={report.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <h3 className="text-base font-semibold text-gray-900 dark:text-white">{report.company_name}</h3>
-                      {report.stock_code && (
-                        <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">{report.stock_code}</span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                        report.status === 'success' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' :
-                        report.status === 'processing' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' :
-                        'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
-                      }`}>
-                        {report.status === 'success' ? '成功' :
-                         report.status === 'processing' ? '处理中' : '失败'}
-                      </span>
-                      <span className="text-xs text-gray-400">{formatDate(report.upload_time)}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-6 mb-2">
-                    <div className="text-center">
-                      <p className="text-[10px] text-gray-500 dark:text-gray-400">营收</p>
-                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{formatNumber(report.revenue)}万</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-[10px] text-gray-500 dark:text-gray-400">净利润</p>
-                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{formatNumber(report.net_profit)}万</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-[10px] text-gray-500 dark:text-gray-400">负债率</p>
-                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{report.debt_ratio || '--'}%</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-[10px] text-gray-500 dark:text-gray-400">毛利率</p>
-                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{report.gross_margin || '--'}%</p>
-                    </div>
-                  </div>
-
-                  {report.ai_summary && (
-                    <div className="bg-primary-50 dark:bg-primary-900/10 rounded-lg p-3 border border-primary-100 dark:border-primary-800 mt-2">
-                      <p className="text-xs text-gray-700 dark:text-gray-300 line-clamp-2">{report.ai_summary}</p>
-                    </div>
-                  )}
+            <>
+              {/* 分页信息 */}
+              <div className="px-6 py-3 bg-gray-50 dark:bg-gray-700/30 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  显示第 <strong>{startIndex + 1}-{Math.min(endIndex, reports.length)}</strong> 条，共 <strong>{reports.length}</strong> 条
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    ← 上一页
+                  </button>
+                  
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                    <button
+                      key={page}
+                      onClick={() => handlePageChange(page)}
+                      className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
+                        currentPage === page
+                          ? 'bg-primary-600 text-white border-primary-600'
+                          : 'border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                  
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-1.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    下一页 →
+                  </button>
                 </div>
-              ))}
-            </div>
+              </div>
+
+              {/* 报告列表 */}
+              <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                {currentReports.map((report) => (
+                  <div key={report.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <h3 className="text-base font-semibold text-gray-900 dark:text-white">{report.company_name || report.id?.includes('sample') ? '示例分析' : '未知'}</h3>
+                        {report.stock_code && (
+                          <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">{report.stock_code}</span>
+                        )}
+                        {report.report_period && (
+                          <span className="text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded">{report.report_period}</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => {
+                            if (report.status !== 'success') {
+                              setSelectedFailedReport(report);
+                            }
+                          }}
+                          className={`px-2 py-0.5 text-xs font-medium rounded-full transition-all ${
+                            report.status === 'success' 
+                              ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 cursor-default' 
+                              : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 cursor-pointer hover:shadow-md'
+                          }`}
+                          title={report.status !== 'success' ? '点击查看失败原因' : ''}
+                        >
+                          {report.status === 'success' ? '✅ 成功' :
+                           report.status === 'processing' ? '⏳ 处理中' : '❌ 失败'}
+                        </button>
+                        <span className="text-xs text-gray-400">{formatDate(report.upload_time)}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-6 mb-2">
+                      <div className="text-center min-w-[80px]">
+                        <p className="text-[10px] text-gray-500 dark:text-gray-400">营收</p>
+                        <p className={`text-sm font-semibold ${report.revenue ? 'text-gray-900 dark:text-white' : 'text-gray-400'}`}>
+                          {formatNumber(report.revenue)}{report.revenue ? '亿' : ''}
+                        </p>
+                      </div>
+                      <div className="text-center min-w-[80px]">
+                        <p className="text-[10px] text-gray-500 dark:text-gray-400">净利润</p>
+                        <p className={`text-sm font-semibold ${report.net_profit ? 'text-gray-900 dark:text-white' : 'text-gray-400'}`}>
+                          {formatNumber(report.net_profit)}{report.net_profit ? '亿' : ''}
+                        </p>
+                      </div>
+                      <div className="text-center min-w-[70px]">
+                        <p className="text-[10px] text-gray-500 dark:text-gray-400">负债率</p>
+                        <p className={`text-sm font-semibold ${report.debt_ratio ? 'text-gray-900 dark:text-white' : 'text-gray-400'}`}>
+                          {report.debt_ratio || '--'}%
+                        </p>
+                      </div>
+                      <div className="text-center min-w-[70px]">
+                        <p className="text-[10px] text-gray-500 dark:text-gray-400">毛利率</p>
+                        <p className={`text-sm font-semibold ${report.gross_margin ? 'text-gray-900 dark:text-white' : 'text-gray-400'}`}>
+                          {report.gross_margin || '--'}%
+                        </p>
+                      </div>
+                    </div>
+
+                    {report.ai_summary && report.status === 'success' && (
+                      <div className="bg-primary-50 dark:bg-primary-900/10 rounded-lg p-3 border border-primary-100 dark:border-primary-800 mt-2 cursor-pointer hover:bg-primary-100 dark:hover:bg-primary-900/20 transition-colors group">
+                        <p className="text-xs text-gray-700 dark:text-gray-300 line-clamp-2 group-hover:line-clamp-none">
+                          {report.ai_summary}
+                        </p>
+                        <p className="text-[10px] text-primary-600 dark:text-primary-400 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          点击展开完整报告 →
+                        </p>
+                      </div>
+                    )}
+
+                    {report.status !== 'success' && !report.ai_summary && (
+                      <div className="mt-2 p-2 bg-yellow-50 dark:bg-yellow-900/10 rounded text-xs text-yellow-700 dark:text-yellow-400">
+                        💡 点击上方"失败"标签查看详细原因和解决方案
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* 底部分页控件 */}
+              {totalPages > 1 && (
+                <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700/30 border-t border-gray-200 dark:border-gray-700 flex items-center justify-center gap-2">
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="px-4 py-2 text-sm rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    ← 上一页
+                  </button>
+                  
+                  <span className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400">
+                    第 <strong>{currentPage}</strong> / {totalPages} 页
+                  </span>
+                  
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="px-4 py-2 text-sm rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    下一页 →
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
+
+        {/* 失败详情弹窗 */}
+        {selectedFailedReport && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedFailedReport(null)}>
+            <div 
+              className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full max-h-[80vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* 弹窗头部 */}
+              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    ❌ 解析失败详情
+                  </h3>
+                  <button
+                    onClick={() => setSelectedFailedReport(null)}
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                  文件: {selectedFailedReport.id?.includes('sample') ? '示例分析' : (selectedFailedReport.company_name || '未知文件')}
+                  {selectedFailedReport.upload_time && ` · ${formatDate(selectedFailedReport.upload_time)}`}
+                </p>
+              </div>
+
+              {/* 弹窗内容 */}
+              <div className="p-6 space-y-4">
+                {/* 可能的原因 */}
+                <div className="bg-red-50 dark:bg-red-900/10 rounded-lg p-4 border border-red-200 dark:border-red-800">
+                  <h4 className="font-semibold text-red-700 dark:text-red-400 mb-2 flex items-center gap-2">
+                    🔍 可能的失败原因
+                  </h4>
+                  <ul className="space-y-2 text-sm text-red-600 dark:text-red-300">
+                    <li className="flex items-start gap-2">
+                      <span>•</span>
+                      <span><strong>PDF格式问题</strong>: 文件可能是扫描件（图片格式），系统无法提取文字内容</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span>•</span>
+                      <span><strong>文件加密</strong>: PDF设置了密码保护或权限限制</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span>•</span>
+                      <span><strong>文件损坏</strong>: 上传过程中文件可能已损坏或不完整</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span>•</span>
+                      <span><strong>网络超时</strong>: Render免费版响应时间较长，请求可能超时</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span>•</span>
+                      <span><strong>服务器错误</strong>: 后端服务暂时不可用或正在维护</span>
+                    </li>
+                  </ul>
+                </div>
+
+                {/* 解决方案 */}
+                <div className="bg-blue-50 dark:bg-blue-900/10 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                  <h4 className="font-semibold text-blue-700 dark:text-blue-400 mb-2 flex items-center gap-2">
+                    💡 推荐解决方案
+                  </h4>
+                  <ul className="space-y-2 text-sm text-blue-600 dark:text-blue-300">
+                    <li className="flex items-start gap-2">
+                      <span>✅</span>
+                      <span><strong>使用文字版PDF</strong>: 确保PDF包含可选择的文本，而非扫描图片</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span>✅</span>
+                      <span><strong>尝试Excel格式</strong>: 如果有Excel版本的财报，解析成功率更高</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span>✅</span>
+                      <span><strong>压缩文件大小</strong>: 确保文件小于50MB，必要时压缩图片</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span>✅</span>
+                      <span><strong>检查网络连接</strong>: 确认网络稳定，或稍后重试</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span>✅</span>
+                      <span><strong>使用示例功能</strong>: 点击"✨ 查看示例分析"体验完整功能</span>
+                    </li>
+                  </ul>
+                </div>
+
+                {/* 技术细节 */}
+                <div className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-4">
+                  <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+                    📋 技术信息
+                  </h4>
+                  <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 dark:text-gray-400">
+                    <div>
+                      <span className="font-medium">报告ID:</span>
+                      <code className="ml-1 bg-gray-200 dark:bg-gray-600 px-1 rounded">{selectedFailedReport.id}</code>
+                    </div>
+                    <div>
+                      <span className="font-medium">状态:</span>
+                      <span className="ml-1 text-red-600 font-medium">{selectedFailedReport.status || 'failed'}</span>
+                    </div>
+                    <div className="col-span-2">
+                      <span className="font-medium">上传时间:</span>
+                      <span className="ml-1">{selectedFailedReport.upload_time ? new Date(selectedFailedReport.upload_time).toLocaleString('zh-CN') : '未知'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 弹窗底部按钮 */}
+              <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex gap-3">
+                <button
+                  onClick={() => setSelectedFailedReport(null)}
+                  className="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                >
+                  关闭
+                </button>
+                <button
+                  onClick={() => {
+                    setSelectedFailedReport(null);
+                    setError('');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="flex-1 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-medium rounded-lg hover:from-purple-500 hover:to-pink-500 transition-all shadow-lg"
+                >
+                  ✨ 使用示例数据
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </Layout>
   );
