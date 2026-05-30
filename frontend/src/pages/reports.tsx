@@ -105,7 +105,7 @@ export default function ReportsPage() {
   };
 
   const loadSampleReport = async () => {
-    console.log('馃殌 鐐瑰嚮浜嗙ず渚嬪垎鏋愭寜閽?);
+    console.log('🎉 点击了示例分析按钮');
     setUploading(true);
     setError('');
     setUploadStep('uploading');
@@ -133,29 +133,33 @@ export default function ReportsPage() {
         cash_flow: 82500000000,
         debt_ratio: 18.5,
         gross_margin: 91.5,
-        ai_summary: `## 璐靛窞鑼呭彴 (600519) 2025骞村害璐㈠姟鍒嗘瀽鎶ュ憡
+        ai_summary: `## 贵州茅台 (600519) 2025年度财务分析报告
 
-### 馃搳 鏍稿績璐㈠姟鎸囨爣
+### 📊 核心财务指标
 
-**钀ヤ笟鏀跺叆**: 1,476.99浜垮厓 (+15.2% YoY)
-**鍑€鍒╂鼎**: 748.00浜垮厓 (+16.8% YoY)
-**缁忚惀鐜伴噾娴?*: 825.00浜垮厓 (+12.3% YoY)
-**璧勪骇璐熷€虹巼**: 18.5% (-1.2pp)
-**姣涘埄鐜?*: 91.5% (+0.3pp)
+**营业收入**: 1,476.99亿元 (+15.2% YoY)
+**净利润**: 748.00亿元 (+16.8% YoY)
+**经营现金流**: 825.00亿元 (+12.3% YoY)
+**资产负债率**: 18.5% (-1.2pp)
+**毛利率**: 91.5% (+0.3pp)
 
-### 馃幆 鍏抽敭鍙戠幇
+### 🔍 关键发现
 
-#### 鉁?**浼樺娍浜偣**
-1. **鐩堝埄鑳藉姏鍗撹秺**: 姣涘埄鐜囬珮杈?1.5%锛屼綅灞匒鑲℃棣?2. **鐜伴噾娴佸厖娌?*: 缁忚惀鎬х幇閲戞祦/鍑€鍒╂鼎姣旂巼杈?10%锛岀幇閲戝垱閫犺兘鍔涘己
-3. **鍝佺墝鎶ゅ煄娌虫繁**: 鑼呭彴鍝佺墝浠峰€兼寔缁彁鍗囷紝瀹氫环鏉冪ǔ鍥?4. **璐㈠姟缁撴瀯鍋ュ悍**: 璧勪骇璐熷€虹巼浠?8.5%锛屽嚑涔庢棤鏈夋伅璐熷€?5. **鍒嗙孩鎱锋叏**: 棰勮2025骞村垎绾㈢巼瓒?2%锛岃偂鎭巼绾?.5%
+#### ✅ **优势亮点**
+1. **盈利能力卓越**: 毛利率高达91.5%，位居白酒行业第一
+2. **现金流充裕**: 经营性现金流/净利润比率超10%，现金创造能力强大
+3. **品牌价值深厚**: 茅台品牌价值持续提升，定价权稳固
+4. **财务结构稳健**: 资产负债率仅18.5%，几乎无有息负债
+5. **分红慷慨**: 预计2025年分红率超52%，股息率约2.5%
 
-#### 鈿狅笍 **椋庨櫓鎻愮ず**
-1. **浼板€煎亸楂?*: 褰撳墠PE(TTM)绾?5鍊嶏紝楂樹簬鍘嗗彶鍧囧€?2. **澧為€熸斁缂?*: 钀ユ敹澧為€熶粠20%+闄嶈嚦15%锛岄珮鍩烘暟鏁堝簲鏄剧幇
-3. **鏀跨瓥椋庨櫓**: 鐧介厭娑堣垂绋庢敼闈╁彲鑳藉奖鍝嶅埄娑︾巼
-4. **绔炰簤鍔犲墽**: 楂樼鐧介厭甯傚満绔炰簤鐧界儹鍖栵紝浜旂伯娑层€佸浗绐?573杩借刀
-5. **搴撳瓨鍘嬪姏**: 缁忛攢鍟嗗簱瀛樺懆鏈熷欢闀胯嚦45澶╋紙vs 鍘嗗彶骞冲潎30澶╋級
+#### ⚠️ **风险提示**
+1. **估值偏高**: 当前PE(TTM)约35倍，高于历史均值
+2. **增速放缓**: 营收增速从20%+降至15%，高基数效应显现
+3. **政策风险**: 白酒消费税改革可能影响利润率
+4. **竞争加剧**: 高端白酒市场竞争加剧，五粮液、国窖1573追赶
+5. **库存压力**: 经销商库存周期延长至45天（vs 历史平均30天）
 
-### 馃挕 鎶曡祫寤鸿
+### 💡 投资建议
 
 **璇勭骇**: 猸愨瓙猸愨瓙 (鎺ㄨ崘鎸佹湁)
 
@@ -297,13 +301,13 @@ export default function ReportsPage() {
                 <div className="flex-1">
                   <p className="text-red-600 dark:text-red-400 text-sm font-medium">{error}</p>
                   <div className="mt-3 text-xs text-red-500 dark:text-red-400 space-y-1.5">
-                    <p>馃攳 **甯歌鍘熷洜鍙婅В鍐虫柟妗?*:</p>
-                    <p>鈥?鈴?**鏈嶅姟鍣ㄨ秴鏃?*: Render鍏嶈垂鐗堥娆¤姹傞渶50绉?锛岃鑰愬績绛夊緟鎴栦娇鐢ㄧず渚嬫暟鎹?/p>
-                    <p>鈥?馃搫 **PDF鏍煎紡闂**: 鎵弿浠?鍔犲瘑PDF鏃犳硶瑙ｆ瀽锛岃浣跨敤鏂囧瓧鐗圥DF</p>
-                    <p>鈥?馃寪 **缃戠粶杩炴帴**: 妫€鏌ョ綉缁滐紝鎴栧皾璇曞埛鏂伴〉闈㈠悗閲嶈瘯</p>
-                    <p>鈥?馃摝 **鏂囦欢澶у皬**: 璇风‘淇濇枃浠跺皬浜?0MB</p>
+                    <p>🔍 **常见原因及解决方案**:</p>
+                    <p>⏱️ **服务器超时**: Render免费版单次请求需50秒，请耐心等待或使用示例数据</p>
+                    <p>📄 **PDF格式问题**: 扫描件/加密PDF无法解析，请使用文字版PDF</p>
+                    <p>🌐 **网络连接**: 检查网络，或尝试刷新页面后重试</p>
+                    <p>📁 **文件大小**: 请确保文件小于10MB</p>
                     <div className="mt-2 pt-2 border-t border-red-200 dark:border-red-700">
-                      <p className="font-medium text-red-600 dark:text-red-400">馃挕 鎺ㄨ崘鏂规: 鐐瑰嚮涓嬫柟"鉁?鏌ョ湅绀轰緥鍒嗘瀽"鎸夐挳锛岀珛鍗充綋楠屽畬鏁村姛鑳斤紒</p>
+                      <p className="font-medium text-red-600 dark:text-red-400">💡 推荐方案: 点击下方"📋 查看示例分析"按钮，立即体验完整功能！</p>
                     </div>
                   </div>
                 </div>
@@ -343,7 +347,7 @@ export default function ReportsPage() {
             <svg className="w-14 h-14 text-gray-400 dark:text-gray-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
             </svg>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">鐐瑰嚮鎴栨嫋鎷戒笂浼犺储鎶DF鏂囦欢</p>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">点击或拖拽上传财报PDF文件</p>
             <input
               type="file"
               accept="application/pdf"
@@ -474,7 +478,7 @@ export default function ReportsPage() {
                               ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 cursor-default' 
                               : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 cursor-pointer hover:shadow-md'
                           }`}
-                          title={report.status !== 'success' ? '鐐瑰嚮鏌ョ湅澶辫触鍘熷洜' : ''}
+                          title={report.status !== 'success' ? '点击查看失败原因' : ''}
                         >
                           {report.status === 'success' ? '鉁?鎴愬姛' :
                            report.status === 'processing' ? '鈴?澶勭悊涓? : '鉂?澶辫触'}
@@ -516,13 +520,13 @@ export default function ReportsPage() {
                           {report.ai_summary}
                         </p>
                         <p className="text-[10px] text-primary-600 dark:text-primary-400 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          鐐瑰嚮灞曞紑瀹屾暣鎶ュ憡 鈫?                        </p>
+                          点击展开完整报告 →                        </p>
                       </div>
                     )}
 
                     {report.status !== 'success' && !report.ai_summary && (
                       <div className="mt-2 p-2 bg-yellow-50 dark:bg-yellow-900/10 rounded text-xs text-yellow-700 dark:text-yellow-400">
-                        馃挕 鐐瑰嚮涓婃柟"澶辫触"鏍囩鏌ョ湅璇︾粏鍘熷洜鍜岃В鍐虫柟妗?                      </div>
+                        💡 点击上方"失败"标签查看详细原因和解决方案
                     )}
                   </div>
                 ))}
@@ -586,7 +590,7 @@ export default function ReportsPage() {
                 {/* 鍙兘鐨勫師鍥?*/}
                 <div className="bg-red-50 dark:bg-red-900/10 rounded-lg p-4 border border-red-200 dark:border-red-800">
                   <h4 className="font-semibold text-red-700 dark:text-red-400 mb-2 flex items-center gap-2">
-                    馃攳 鍙兘鐨勫け璐ュ師鍥?                  </h4>
+                    🔍 可能的失败原因
                   <ul className="space-y-2 text-sm text-red-600 dark:text-red-300">
                     <li className="flex items-start gap-2">
                       <span>鈥?/span>
@@ -614,7 +618,7 @@ export default function ReportsPage() {
                 {/* 瑙ｅ喅鏂规 */}
                 <div className="bg-blue-50 dark:bg-blue-900/10 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
                   <h4 className="font-semibold text-blue-700 dark:text-blue-400 mb-2 flex items-center gap-2">
-                    馃挕 鎺ㄨ崘瑙ｅ喅鏂规
+                    💡 推荐解决方案
                   </h4>
                   <ul className="space-y-2 text-sm text-blue-600 dark:text-blue-300">
                     <li className="flex items-start gap-2">
@@ -635,7 +639,7 @@ export default function ReportsPage() {
                     </li>
                     <li className="flex items-start gap-2">
                       <span>鉁?/span>
-                      <span><strong>浣跨敤绀轰緥鍔熻兘</strong>: 鐐瑰嚮"鉁?鏌ョ湅绀轰緥鍒嗘瀽"浣撻獙瀹屾暣鍔熻兘</span>
+                      <span><strong>使用示例功能</strong>: 点击"📋 查看示例分析"体验完整功能</span>
                     </li>
                   </ul>
                 </div>
@@ -643,7 +647,7 @@ export default function ReportsPage() {
                 {/* 鎶€鏈粏鑺?*/}
                 <div className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-4">
                   <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
-                    馃搵 鎶€鏈俊鎭?                  </h4>
+                    📊 技术信息
                   <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 dark:text-gray-400">
                     <div>
                       <span className="font-medium">鎶ュ憡ID:</span>
