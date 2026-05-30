@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+﻿from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import os
@@ -39,6 +39,7 @@ async def startup_event():
         from app.routes.emotion import router as emotion_router
         from app.routes.analysis import router as analysis_router
         from app.routes.monitor import router as monitor_router
+        from app.routes.data import router as data_router
 
         logger.info("All route modules imported")
 
@@ -48,6 +49,7 @@ async def startup_event():
         app.include_router(emotion_router)
         app.include_router(analysis_router)
         app.include_router(monitor_router)
+        app.include_router(data_router)
 
         logger.info("All routers registered")
         
