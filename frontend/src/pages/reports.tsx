@@ -46,13 +46,13 @@ export default function ReportsPage() {
       const reportsData = response?.data || response;
       setReports(Array.isArray(reportsData) ? reportsData : []);
     } catch (err) {
-      setError('鑾峰彇璐㈡姤鍒楄〃澶辫触');
+      setError('获取报告列表失败');
     } finally {
       setLoading(false);
     }
   };
 
-  // 鍒嗛〉璁＄畻
+  // 分页计算
   const totalPages = Math.ceil(reports.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
@@ -70,7 +70,7 @@ export default function ReportsPage() {
     const file = e.target.files?.[0];
     if (!file) {
       setSelectedFile(null);
-      setError('璇烽€夋嫨鏂囦欢');
+      setError('请选择文件');
       return;
     }
 
@@ -89,7 +89,7 @@ export default function ReportsPage() {
       setError('');
     } else {
       setSelectedFile(null);
-      setError('浠呮敮鎸?PDF銆丒xcel (xlsx/xls)銆丆SV 鏍煎紡鏂囦欢');
+      setError('仅支持 PDF、Excel (xlsx/xls)、CSV 格式文件');
     }
   };
 
@@ -182,10 +182,10 @@ export default function ReportsPage() {
         setUploadProgress(0);
       }, 2000);
       
-      console.log('鉁?绀轰緥鍒嗘瀽瀹屾垚锛?);
+      console.log('✅ 示例分析完成');
     } catch (err) {
-      console.error('鉂?鍔犺浇绀轰緥鏁版嵁澶辫触:', err);
-      setError('鍔犺浇绀轰緥鏁版嵁澶辫触: ' + (err as Error).message);
+      console.error('❌ 加载示例数据失败:', err);
+      setError('加载示例数据失败: ' + (err as Error).message);
       setUploadStep('error');
     } finally {
       setUploading(false);
