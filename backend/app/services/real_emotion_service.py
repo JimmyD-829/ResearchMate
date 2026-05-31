@@ -14,6 +14,7 @@ import pandas as pd
 
 from ..providers.akshare_provider import AKShareProvider
 from ..providers.alpha_vantage_provider import AlphaVantageProvider
+from ..providers.yahoo_finance_provider import YahooFinanceProvider
 from ..utils.smart_cache import get_cache
 
 logger = logging.getLogger(__name__)
@@ -22,15 +23,22 @@ class RealEmotionService:
     """
     真实情绪分析服务
     
-    数据源优先级:
-    1. AKShare (A股) / Alpha Vantage (美股/港股)
-    2. 缓存数据 (30分钟内有效)
-    3. Fallback数据 (仅当所有数据源都不可用时)
+    数据源优先级 (美股):
+    1. Alpha Vantage (首选)
+    2. Yahoo Finance (备用，免费无限制)
+    3. 缓存数据
+    4. Fallback数据 (仅当所有数据源都不可用时)
+    
+    数据源优先级 (A股):
+    1. AKShare
+    2. 缓存数据
+    3. Fallback数据
     """
     
     def __init__(self):
         self.akshare = AKShareProvider()
         self.alpha_vantage = AlphaVantageProvider()
+        self.yahoo_finance = YahooFinanceProvider()  # 新增！备用数据源
         
         # 公司名到股票代码的映射表
         self.company_symbol_map = {
@@ -91,16 +99,46 @@ class RealEmotionService:
         return False
     
     async def fetch_real_time_data(self, symbol: str) -> Optional[Dict]:
-        """获取实时行情数据"""
+        """
+        获取实时行情数据（支持多数据源容灾）
+        
+        美股数据源优先级:
+        1. Alpha Vantage (首选)
+        2. Yahoo Finance (备用，免费无限制)
+        
+        A股数据源: AKShare
+        """
         try:
             if self._is_cn_stock(symbol):
+                # A股：使用AKShare
                 data = await self.akshare.get_realtime_quote(symbol.replace('.SZ', '').replace('.SH', ''))
                 return data
             else:
+                # 美股/港股：优先Alpha Vantage，失败则用Yahoo Finance
+                
+                # 尝试1: Alpha Vantage
+                logger.info(f"📡 [1/2] 尝试 Alpha Vantage 获取 {symbol}...")
                 data = await self.alpha_vantage.get_us_stock_quote(symbol)
-                return data
+                
+                if data is not None:
+                    logger.info(f"✅ Alpha Vantage 成功获取 {symbol}: ${data.get('price')}")
+                    return data
+                
+                # Alpha Vantage失败，尝试Yahoo Finance
+                logger.warning(f"⚠️ Alpha Vantage 失败，切换到 Yahoo Finance 获取 {symbol}...")
+                
+                data = await self.yahoo_finance.get_us_stock_quote(symbol)
+                
+                if data is not None:
+                    logger.info(f"🎉 Yahoo Finance 成功获取 {symbol}: ${data.get('price')} ({data['source']})")
+                    return data
+                
+                # 所有数据源都失败
+                logger.error(f"❌ 所有数据源都无法获取 {symbol} 的实时数据")
+                return None
+                
         except Exception as e:
-            logger.error(f"获取{symbol}实时数据失败: {e}")
+            logger.error(f"获取{symbol}实时数据异常: {e}", exc_info=True)
             return None
     
     async def fetch_history_data(self, symbol: str, days: int = 30) -> Optional[pd.DataFrame]:
