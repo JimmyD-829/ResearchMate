@@ -226,24 +226,24 @@ export default function ReportsPage() {
         if (status === 400 && detail) {
           setError(detail);
         } else if (status === 401) {
-          setError('鐧诲綍宸茶繃鏈燂紝璇烽噸鏂扮櫥褰曞悗閲嶈瘯');
+          setError('登录已过期，请重新登录后重试');
         } else if (status === 413) {
-          setError('鏂囦欢杩囧ぇ锛堟渶澶ф敮鎸?0MB锛夛紝璇峰帇缂╁悗閲嶆柊涓婁紶');
+          setError('文件过大（最大支持50MB），请压缩后重新上传');
         } else if (status >= 500) {
           setError(`服务器内部错误(${status})，请稍后重试`);
         } else {
-          setError(`涓婁紶澶辫触: ${detail || `HTTP ${status}`}`);
+          setError(`上传失败: ${detail || `HTTP ${status}`}`);
         }
       } else if (err.message) {
         if (err.message.includes('Network Error')) {
-          setError('缃戠粶杩炴帴澶辫触锛岃妫€鏌ョ綉缁滃悗閲嶈瘯');
+          setError('网络连接失败，请检查网络后重试');
         } else if (err.message.includes('timeout')) {
           setError('请求超时，请稍后重试');
         } else {
-          setError(`涓婁紶澶辫触: ${err.message}`);
+          setError(`上传失败: ${err.message}`);
         }
       } else {
-        setError('涓婁紶澶辫触锛岃妫€鏌ユ枃浠舵牸寮忓拰缃戠粶鍚庨噸璇?);
+        setError('上传失败，请检查文件格式和网络后重试');
       }
     } finally {
       setUploading(false);
@@ -261,11 +261,11 @@ export default function ReportsPage() {
 
   const getStepText = (step: UploadStep) => {
     switch (step) {
-      case 'uploading': return '姝ｅ湪涓婁紶...';
-      case 'parsing': return '姝ｅ湪瑙ｆ瀽璐㈡姤...';
-      case 'analyzing': return 'AI鍒嗘瀽涓?..';
+      case 'uploading': return '正在上传...';
+      case 'parsing': return '正在解析财报...';
+      case 'analyzing': return 'AI分析中...';
       case 'success': return '分析完成';
-      case 'error': return '鍒嗘瀽澶辫触';
+      case 'error': return '分析失败';
       default: return '';
     }
   };
@@ -276,8 +276,8 @@ export default function ReportsPage() {
     <Layout>
       <div className="max-w-5xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">璐㈡姤鏅鸿兘瑙ｈ</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">涓婁紶璐㈡姤PDF锛岃嚜鍔ㄨВ鏋愬叧閿储鍔℃寚鏍?/p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">财报智能解读</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">上传财报PDF，自动解析关键财务指标</p>
         </div>
 
         <ComplianceNote />
@@ -290,7 +290,7 @@ export default function ReportsPage() {
               </svg>
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">涓婁紶璐㈡姤</h2>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">上传财报</h2>
               <p className="text-sm text-gray-500 dark:text-gray-400">鏀寔 PDF銆丒xcel銆丆SV 鏍煎紡鏂囦欢</p>
             </div>
           </div>
@@ -318,7 +318,7 @@ export default function ReportsPage() {
                   }}
                   className="ml-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium whitespace-nowrap"
                 >
-                  閲嶈瘯涓婁紶
+                  重新上传
                 </button>
               </div>
             </div>
@@ -375,7 +375,7 @@ export default function ReportsPage() {
               >
                 📋 查看示例分析（无需上传）
             </div>
-            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">浣撻獙瀹屾暣鍒嗘瀽鍔熻兘锛屼簡瑙ｆ姤鍛婃牱寮?/p>
+            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">体验完整分析功能，了解报告样式</p>
           </div>
           
           {selectedFile && uploadStep === 'idle' && (
@@ -384,7 +384,7 @@ export default function ReportsPage() {
               disabled={uploading}
               className="mt-6 w-full py-3.5 bg-gradient-to-r from-primary-600 to-blue-600 hover:from-primary-500 hover:to-blue-500 disabled:from-gray-400 disabled:to-gray-400 text-white font-semibold rounded-xl transition-all"
             >
-              {uploading ? '澶勭悊涓?..' : '寮€濮嬭В鏋愯储鎶?}
+              {uploading ? '处理中...' : '开始解析分析'}
             </button>
           )}
         </div>
@@ -397,7 +397,7 @@ export default function ReportsPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
                 </svg>
               </div>
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">瑙ｆ瀽鍘嗗彶</h2>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">解析历史</h2>
             </div>
             <span className="text-sm text-gray-500 dark:text-gray-400">{reports.length} 鏉¤褰?/span>
           </div>
@@ -412,7 +412,7 @@ export default function ReportsPage() {
               <svg className="w-16 h-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              <p className="text-gray-600 dark:text-gray-400">鏆傛棤璐㈡姤瑙ｆ瀽璁板綍</p>
+              <p className="text-gray-600 dark:text-gray-400">暂无财报解析记录</p>
               <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">上传财报或点击"查看示例分析"开始体验</p>
             </div>
           ) : (
@@ -481,7 +481,7 @@ export default function ReportsPage() {
                           title={report.status !== 'success' ? '点击查看失败原因' : ''}
                         >
                           {report.status === 'success' ? '鉁?鎴愬姛' :
-                           report.status === 'processing' ? '鈴?澶勭悊涓? : '鉂?澶辫触'}
+                           report.status === 'processing' ? '⏳ 处理中' : '❌ 失败'}
                         </button>
                         <span className="text-xs text-gray-400">{formatDate(report.upload_time)}</span>
                       </div>
@@ -602,15 +602,15 @@ export default function ReportsPage() {
                     </li>
                     <li className="flex items-start gap-2">
                       <span>鈥?/span>
-                      <span><strong>鏂囦欢鎹熷潖</strong>: 涓婁紶杩囩▼涓枃浠跺彲鑳藉凡鎹熷潖鎴栦笉瀹屾暣</span>
+                      <span><strong>文件损坏</strong>: 上传过程中文件可能已损坏或不完整</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span>鈥?/span>
-                      <span><strong>缃戠粶瓒呮椂</strong>: Render鍏嶈垂鐗堝搷搴旀椂闂磋緝闀匡紝璇锋眰鍙兘瓒呮椂</span>
+                      <span><strong>网络超时</strong>: Render免费版响应时间较长，请求可能超时</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span>鈥?/span>
-                      <span><strong>鏈嶅姟鍣ㄩ敊璇?/strong>: 鍚庣鏈嶅姟鏆傛椂涓嶅彲鐢ㄦ垨姝ｅ湪缁存姢</span>
+                      <span><strong>服务器错误</strong>: 后端服务暂时不可用或正在维护</span>
                     </li>
                   </ul>
                 </div>
@@ -627,7 +627,7 @@ export default function ReportsPage() {
                     </li>
                     <li className="flex items-start gap-2">
                       <span>鉁?/span>
-                      <span><strong>灏濊瘯Excel鏍煎紡</strong>: 濡傛灉鏈塃xcel鐗堟湰鐨勮储鎶ワ紝瑙ｆ瀽鎴愬姛鐜囨洿楂?/span>
+                      <span><strong>尝试Excel格式</strong>: 如果有Excel版本的财报，解析成功率更高</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span>鉁?/span>
@@ -658,7 +658,7 @@ export default function ReportsPage() {
                       <span className="ml-1 text-red-600 font-medium">{selectedFailedReport.status || 'failed'}</span>
                     </div>
                     <div className="col-span-2">
-                      <span className="font-medium">涓婁紶鏃堕棿:</span>
+                      <span className="font-medium">上传时间:</span>
                       <span className="ml-1">{selectedFailedReport.upload_time ? new Date(selectedFailedReport.upload_time).toLocaleString('zh-CN') : '鏈煡'}</span>
                     </div>
                   </div>
