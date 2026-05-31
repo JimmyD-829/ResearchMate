@@ -566,7 +566,8 @@ class RealEmotionService:
                     'calculation_time': datetime.now().isoformat(),
                     'data_points': len(history_df) if history_df is not None else 0,
                     'method': 'quantitative_analysis',
-                    'version': '2.0-real'
+                    'version': '2.0-real',
+                    'is_real_data': True
                 }
             }
             
