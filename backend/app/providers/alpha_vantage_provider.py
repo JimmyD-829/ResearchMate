@@ -1,4 +1,17 @@
-﻿import os
+"""
+Alpha Vantage数据提供者
+
+适用场景：
+- 美股实时行情
+- 全球市场数据
+- 外汇汇率
+- 公司基本面数据
+
+免费版限制：25次/天
+"""
+
+import os
+import json
 import httpx
 from typing import Optional, Dict, List
 from datetime import datetime
@@ -59,8 +72,13 @@ class AlphaVantageProvider:
                 'symbol': symbol
             })
             
+            logger.info(f"📦 Alpha Vantage原始响应 ({symbol}): {json.dumps(data, ensure_ascii=False)[:500]}")
+            
             quote = data.get('Global Quote', {})
+            logger.info(f"🔍 Global Quote字段: {quote}")
+            
             if quote and '01. symbol' in quote:
+                logger.info(f"✅ 成功解析{symbol}行情数据: price={quote.get('05. price')}")
                 return {
                     'symbol': quote.get('01. symbol'),
                     'open': float(quote.get('02. open', 0)),
@@ -77,6 +95,10 @@ class AlphaVantageProvider:
                 }
                 
             logger.warning(f"Alpha Vantage未找到{symbol}的行情数据")
+            logger.warning(f"   原始数据keys: {list(data.keys()) if data else 'None'}")
+            logger.warning(f"   Global Quote内容: {quote if quote else 'Empty/None'}")
+            if 'Note' in data:
+                logger.warning(f"   ⚠️ API限制: {data['Note']}")
             return None
             
         except Exception as e:
@@ -103,6 +125,29 @@ class AlphaVantageProvider:
                 'industry': data.get('Industry'),
                 'market_cap': float(data.get('MarketCapitalization', 0)) if data.get('MarketCapitalization') else None,
                 'pe_ratio': float(data.get('PERatio', 0)) if data.get('PERatio') else None,
+                'peg_ratio': float(data.get('PEGRatio', 0)) if data.get('PEGRatio') else None,
+                'book_value': float(data.get('BookValue', 0)) if data.get('BookValue') else None,
+                'dividend_per_share': float(data.get('DividendPerShare', 0)) if data.get('DividendPerShare') else None,
+                'dividend_yield': float(data.get('DividendYield', 0)) if data.get('DividendYield') else None,
+                'eps': float(data.get('EPS', 0)) if data.get('EPS') else None,
+                'revenue_per_share_ttm': float(data.get('RevenuePerShareTTM', 0)) if data.get('RevenuePerShareTTM') else None,
+                'profit_margin': float(data.get('ProfitMargin', 0)) if data.get('ProfitMargin') else None,
+                'operating_margin_ttm': float(data.get('OperatingMarginTTM', 0)) if data.get('OperatingMarginTTM') else None,
+                'return_on_assets_ttm': float(data.get('ReturnOnAssetsTTM', 0)) if data.get('ReturnOnAssetsTTM') else None,
+                'return_on_equity_ttm': float(data.get('ReturnOnEquityTTM', 0)) if data.get('ReturnOnEquityTTM') else None,
+                'revenue_ttm': float(data.get('RevenueTTM', 0)) if data.get('RevenueTTM') else None,
+                'gross_profit_ttm': float(data.get('GrossProfitTTM', 0)) if data.get('GrossProfitTTM') else None,
+                'ebitda': float(data.get('EBITDA', 0)) if data.get('EBITDA') else None,
+                'total_debt': float(data.get('TotalDebt', 0)) if data.get('TotalDebt') else None,
+                'total_receivable': float(data.get('TotalReceivable', 0)) if data.get('TotalReceivable') else None,
+                'current_ratio': float(data.get('CurrentRatio', 0)) if data.get('CurrentRatio') else None,
+                'operating_cashflow_ttm': float(data.get('OperatingCashflowTTM', 0)) if data.get('OperatingCashflowTTM') else None,
+                'free_cashflow_ttm': float(data.get('FreeCashflowTTM', 0)) if data.get('FreeCashflowTTM') else None,
+                '52_week_high': float(data.get('52WeekHigh', 0)) if data.get('52WeekHigh') else None,
+                '52_week_low': float(data.get('52WeekLow', 0)) if data.get('52WeekLow') else None,
+                '50_day_moving_avg': float(data.get('50DayMovingAverage', 0)) if data.get('50DayMovingAverage') else None,
+                '200_day_moving_avg': float(data.get('200DayMovingAverage', 0)) if data.get('200DayMovingAverage') else None,
+                'shares_outstanding': float(data.get('SharesOutstanding', 0)) if data.get('SharesOutstanding') else None,
                 'source': 'alpha_vantage',
                 'update_time': datetime.now().isoformat()
             }
