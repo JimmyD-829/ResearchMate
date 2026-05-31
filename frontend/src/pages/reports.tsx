@@ -291,7 +291,7 @@ export default function ReportsPage() {
             </div>
             <div>
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">上传财报</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">鏀寔 PDF銆丒xcel銆丆SV 鏍煎紡鏂囦欢</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">支持 PDF、Excel、CSV 格式文件</p>
             </div>
           </div>
           
@@ -594,7 +594,7 @@ export default function ReportsPage() {
                   <ul className="space-y-2 text-sm text-red-600 dark:text-red-300">
                     <li className="flex items-start gap-2">
                       <span>鈥?/span>
-                      <span><strong>PDF鏍煎紡闂</strong>: 鏂囦欢鍙兘鏄壂鎻忎欢锛堝浘鐗囨牸寮忥級锛岀郴缁熸棤娉曟彁鍙栨枃瀛楀唴瀹?/span>
+                      <span><strong>PDF格式问题</strong>: 文件可能是扫描件（图片格式），系统无法提取文本内容</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span>鈥?/span>
@@ -623,7 +623,7 @@ export default function ReportsPage() {
                   <ul className="space-y-2 text-sm text-blue-600 dark:text-blue-300">
                     <li className="flex items-start gap-2">
                       <span>鉁?/span>
-                      <span><strong>浣跨敤鏂囧瓧鐗圥DF</strong>: 纭繚PDF鍖呭惈鍙€夋嫨鐨勬枃鏈紝鑰岄潪鎵弿鍥剧墖</span>
+                      <span><strong>使用文字版PDF</strong>: 确保PDF包含可选的文本层，而非扫描图片</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span>鉁?/span>
@@ -644,7 +644,7 @@ export default function ReportsPage() {
                   </ul>
                 </div>
 
-                {/* 鎶€鏈粏鑺?*/}
+                {/* 技术细节 */}
                 <div className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-4">
                   <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
                     📊 技术信息
@@ -659,7 +659,7 @@ export default function ReportsPage() {
                     </div>
                     <div className="col-span-2">
                       <span className="font-medium">上传时间:</span>
-                      <span className="ml-1">{selectedFailedReport.upload_time ? new Date(selectedFailedReport.upload_time).toLocaleString('zh-CN') : '鏈煡'}</span>
+                      <span className="ml-1">{selectedFailedReport.upload_time ? new Date(selectedFailedReport.upload_time).toLocaleString('zh-CN') : '未知'}</span>
                     </div>
                   </div>
                 </div>
