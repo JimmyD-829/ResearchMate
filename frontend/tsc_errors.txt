@@ -1,0 +1,70 @@
+﻿src/pages/reports.tsx(361,35): error TS1002: Unterminated string literal.
+src/pages/reports.tsx(363,5): error TS1005: ',' expected.
+src/pages/reports.tsx(433,64): error TS1002: Unterminated string literal.
+src/pages/reports.tsx(435,7): error TS1005: ',' expected.
+src/pages/reports.tsx(435,9): error TS1128: Declaration or statement expected.
+src/pages/reports.tsx(483,49): error TS1002: Unterminated string literal.
+src/pages/reports.tsx(485,7): error TS1005: ',' expected.
+src/pages/reports.tsx(487,7): error TS1005: ',' expected.
+src/pages/reports.tsx(525,40): error TS1002: Unterminated string literal.
+src/pages/reports.tsx(543,6): error TS17008: JSX element 'Layout' has no corresponding closing tag.
+src/pages/reports.tsx(545,8): error TS17008: JSX element 'div' has no corresponding closing tag.
+src/pages/reports.tsx(551,12): error TS17008: JSX element 'p' has no corresponding closing tag.
+src/pages/reports.tsx(551,92): error TS1382: Unexpected token. Did you mean `{'>'}` or `&gt;`?
+src/pages/reports.tsx(601,22): error TS17008: JSX element 'p' has no corresponding closing tag.
+src/pages/reports.tsx(601,85): error TS1382: Unexpected token. Did you mean `{'>'}` or `&gt;`?
+src/pages/reports.tsx(747,14): error TS17008: JSX element 'p' has no corresponding closing tag.
+src/pages/reports.tsx(747,99): error TS1382: Unexpected token. Did you mean `{'>'}` or `&gt;`?
+src/pages/reports.tsx(765,52): error TS1002: Unterminated string literal.
+src/pages/reports.tsx(767,13): error TS1005: '}' expected.
+src/pages/reports.tsx(795,14): error TS17008: JSX element 'span' has no corresponding closing tag.
+src/pages/reports.tsx(795,99): error TS1382: Unexpected token. Did you mean `{'>'}` or `&gt;`?
+src/pages/reports.tsx(823,16): error TS17008: JSX element 'p' has no corresponding closing tag.
+src/pages/reports.tsx(823,106): error TS1382: Unexpected token. Did you mean `{'>'}` or `&gt;`?
+src/pages/reports.tsx(959,73): error TS1005: ':' expected.
+src/pages/reports.tsx(959,79): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+src/pages/reports.tsx(979,82): error TS1005: ':' expected.
+src/pages/reports.tsx(979,83): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+src/pages/reports.tsx(979,84): error TS1002: Unterminated string literal.
+src/pages/reports.tsx(991,88): error TS1005: ':' expected.
+src/pages/reports.tsx(991,89): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+src/pages/reports.tsx(991,90): error TS1002: Unterminated string literal.
+src/pages/reports.tsx(1011,26): error TS17008: JSX element 'p' has no corresponding closing tag.
+src/pages/reports.tsx(1011,92): error TS1382: Unexpected token. Did you mean `{'>'}` or `&gt;`?
+src/pages/reports.tsx(1179,20): error TS17008: JSX element 'ul' has no corresponding closing tag.
+src/pages/reports.tsx(1183,36): error TS1382: Unexpected token. Did you mean `{'>'}` or `&gt;`?
+src/pages/reports.tsx(1185,100): error TS1382: Unexpected token. Did you mean `{'>'}` or `&gt;`?
+src/pages/reports.tsx(1187,23): error TS17002: Expected corresponding JSX closing tag for 'span'.
+src/pages/reports.tsx(1191,24): error TS17008: JSX element 'span' has no corresponding closing tag.
+src/pages/reports.tsx(1191,36): error TS1382: Unexpected token. Did you mean `{'>'}` or `&gt;`?
+src/pages/reports.tsx(1199,24): error TS17008: JSX element 'span' has no corresponding closing tag.
+src/pages/reports.tsx(1199,36): error TS1382: Unexpected token. Did you mean `{'>'}` or `&gt;`?
+src/pages/reports.tsx(1207,24): error TS17008: JSX element 'span' has no corresponding closing tag.
+src/pages/reports.tsx(1207,36): error TS1382: Unexpected token. Did you mean `{'>'}` or `&gt;`?
+src/pages/reports.tsx(1215,24): error TS17008: JSX element 'span' has no corresponding closing tag.
+src/pages/reports.tsx(1215,36): error TS1382: Unexpected token. Did you mean `{'>'}` or `&gt;`?
+src/pages/reports.tsx(1217,30): error TS17008: JSX element 'strong' has no corresponding closing tag.
+src/pages/reports.tsx(1217,52): error TS1382: Unexpected token. Did you mean `{'>'}` or `&gt;`?
+src/pages/reports.tsx(1221,21): error TS17002: Expected corresponding JSX closing tag for 'span'.
+src/pages/reports.tsx(1223,19): error TS17002: Expected corresponding JSX closing tag for 'li'.
+src/pages/reports.tsx(1237,20): error TS17008: JSX element 'ul' has no corresponding closing tag.
+src/pages/reports.tsx(1241,24): error TS17008: JSX element 'span' has no corresponding closing tag.
+src/pages/reports.tsx(1241,36): error TS1382: Unexpected token. Did you mean `{'>'}` or `&gt;`?
+src/pages/reports.tsx(1249,36): error TS1382: Unexpected token. Did you mean `{'>'}` or `&gt;`?
+src/pages/reports.tsx(1251,93): error TS1382: Unexpected token. Did you mean `{'>'}` or `&gt;`?
+src/pages/reports.tsx(1253,23): error TS17002: Expected corresponding JSX closing tag for 'span'.
+src/pages/reports.tsx(1257,24): error TS17008: JSX element 'span' has no corresponding closing tag.
+src/pages/reports.tsx(1257,36): error TS1382: Unexpected token. Did you mean `{'>'}` or `&gt;`?
+src/pages/reports.tsx(1265,24): error TS17008: JSX element 'span' has no corresponding closing tag.
+src/pages/reports.tsx(1265,36): error TS1382: Unexpected token. Did you mean `{'>'}` or `&gt;`?
+src/pages/reports.tsx(1267,30): error TS17008: JSX element 'strong' has no corresponding closing tag.
+src/pages/reports.tsx(1267,54): error TS1382: Unexpected token. Did you mean `{'>'}` or `&gt;`?
+src/pages/reports.tsx(1273,24): error TS17008: JSX element 'span' has no corresponding closing tag.
+src/pages/reports.tsx(1273,36): error TS1382: Unexpected token. Did you mean `{'>'}` or `&gt;`?
+src/pages/reports.tsx(1279,21): error TS17002: Expected corresponding JSX closing tag for 'span'.
+src/pages/reports.tsx(1281,19): error TS17002: Expected corresponding JSX closing tag for 'li'.
+src/pages/reports.tsx(1369,10): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+src/pages/reports.tsx(1373,7): error TS17002: Expected corresponding JSX closing tag for 'div'.
+src/pages/reports.tsx(1375,4): error TS1005: '}' expected.
+src/pages/reports.tsx(1377,1): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+src/pages/reports.tsx(1391,1): error TS1005: '</' expected.

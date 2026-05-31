@@ -346,8 +346,23 @@ export default function EmotionPage() {
                           </span>
                         )}
                         {dataSource !== 'live' && (
-                          <span className="text-gray-400 dark:text-gray-500">
+                          <span className="group relative inline-flex items-center gap-1 text-gray-400 dark:text-gray-500 cursor-help">
                             (非实时数据，仅供参考)
+                            <span className="inline-flex items-center justify-center w-4 h-4 text-[10px] font-bold text-white bg-gray-400 dark:bg-gray-500 rounded-full">
+                              ?
+                            </span>
+                            <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-72 px-3 py-2 text-xs text-white bg-gray-900 dark:bg-gray-700 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                              <div className="font-semibold mb-1">📊 数据来源说明</div>
+                              <ul className="space-y-1 text-left">
+                                <li>• <strong>实时数据</strong>: 从后端API获取的最新情绪分析结果</li>
+                                <li>• <strong>缓存数据</strong>: 30分钟内的历史数据（可能不是最新）</li>
+                                <li>• <strong>示例数据</strong>: 后端不可用时显示的模拟数据（基于算法生成）</li>
+                              </ul>
+                              <div className="mt-2 pt-2 border-t border-gray-600 text-[10px] text-gray-300">
+                                ⚠️ 当前显示为示例数据，仅供界面展示参考，不构成投资建议。真实金融数据集成（AKShare/Alpha Vantage）正在开发中。
+                              </div>
+                              <span className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900 dark:border-t-gray-700"></span>
+                            </span>
                           </span>
                         )}
                       </div>

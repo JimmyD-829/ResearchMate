@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useRouter } from 'next/router';
 import Layout from '../components/Layout';
@@ -199,18 +199,75 @@ export default function ReportsPage() {
     setUploadProgress(0);
 
     try {
-      await simulateProgress(0, 30, 1000, 'uploading');
-      await simulateProgress(30, 60, 1500, 'parsing');
-      await simulateProgress(60, 90, 2000, 'analyzing');
-      await reportApi.upload(selectedFile);
-      await simulateProgress(90, 100, 500, 'success');
-      setUploadStep('success');
-      await fetchReports();
-      setSelectedFile(null);
-      setTimeout(() => {
-        setUploadStep('idle');
-        setUploadProgress(0);
-      }, 1500);
+      await simulateProgress(0, 40, 1000, 'uploading');
+
+      const response = await reportApi.upload(selectedFile);
+
+      await simulateProgress(40, 60, 500, 'parsing');
+
+      setUploadStep('analyzing');
+      setUploadProgress(60);
+
+      const reportId = response.data?.id || (response as any).id;
+      console.log('📤 上传成功，报告ID:', reportId, '开始后台处理...');
+
+      let pollCount = 0;
+      const maxPolls = 24;
+      const pollInterval = setInterval(async () => {
+        try {
+          pollCount++;
+          const progress = Math.min(60 + (pollCount / maxPolls) * 35, 95);
+          setUploadProgress(progress);
+
+          if (pollCount >= maxPolls) {
+            clearInterval(pollInterval);
+            setUploadStep('success');
+            setUploadProgress(100);
+            await fetchReports();
+            setSelectedFile(null);
+            setTimeout(() => {
+              setUploadStep('idle');
+              setUploadProgress(0);
+            }, 2000);
+            return;
+          }
+
+          const reportsResponse = await reportApi.getAll();
+          const reports = reportsResponse.data || reportsResponse;
+          const updatedReport = Array.isArray(reports)
+            ? reports.find((r: FinancialReport) => r.id === reportId)
+            : null;
+
+          if (updatedReport && updatedReport.status !== 'processing') {
+            clearInterval(pollInterval);
+
+            if (updatedReport.status === 'success') {
+              setUploadStep('success');
+              setUploadProgress(100);
+              console.log('✅ 后台处理完成！');
+            } else if (updatedReport.status === 'failed') {
+              setUploadStep('error');
+              setError(updatedReport.ai_summary || '后台处理失败，请查看解析历史详情');
+              console.error('❌ 后台处理失败:', updatedReport.ai_summary);
+            }
+
+            await fetchReports();
+            setSelectedFile(null);
+
+            setTimeout(() => {
+              if (uploadStep === 'success') {
+                setUploadStep('idle');
+                setUploadProgress(0);
+              }
+            }, updatedReport.status === 'success' ? 2000 : 3000);
+          } else {
+            console.log(`⏳ 轮询 #${pollCount}: 报告仍在处理中... (${Math.round(progress)}%)`);
+          }
+        } catch (pollError) {
+          console.error('轮询错误:', pollError);
+        }
+      }, 5000);
+
     } catch (err: any) {
       setUploadStep('error');
       console.error('上传错误详情:', err);
@@ -235,6 +292,8 @@ export default function ReportsPage() {
           setError('文件过大（最大支持50MB），请压缩后重新上传');
         } else if (status >= 500) {
           setError(`服务器内部错误(${status})，请稍后重试`);
+        } else if (status === 202) {
+          setError('文件已接收，正在后台处理中。请稍后在"解析历史"中查看结果');
         } else {
           setError(`上传失败: ${detail || `HTTP ${status}`}`);
         }
