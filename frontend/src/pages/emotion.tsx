@@ -27,6 +27,20 @@ ChartJS.register(
   Filler
 );
 
+interface EmotionMetadata {
+  is_real_data: boolean;
+  data_source?: string;
+  stock_code?: string;
+  reasoning?: string;
+  indicators?: Record<string, any>;
+  realtime_data?: {
+    price?: number;
+    change_pct?: number;
+    volume?: number;
+  };
+  warning?: string;
+}
+
 export default function EmotionPage() {
   const [follows, setFollows] = useState<Follow[]>([]);
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
@@ -36,6 +50,11 @@ export default function EmotionPage() {
   const [error, setError] = useState<string | null>(null);
   const [dataSource, setDataSource] = useState<'live' | 'cached' | 'fallback' | null>(null);
   const [dataAge, setDataAge] = useState<number | null>(null);
+  
+  // V2.0 新增状态
+  const [isRealData, setIsRealData] = useState(false);
+  const [realSource, setRealSource] = useState<string | null>(null);  // akshare / alpha_vantage
+  const [metadata, setMetadata] = useState<EmotionMetadata | null>(null);
 
   const { user } = useAuth();
   const router = useRouter();
@@ -60,14 +79,14 @@ export default function EmotionPage() {
         if (Array.isArray(followsData) && followsData.length > 0) {
           setSelectedCompany(followsData[0].company_name);
         } else {
-          setSelectedCompany('平安银行');
+          setSelectedCompany('阿里巴巴');
         }
       } else {
-        setSelectedCompany('平安银行');
+        setSelectedCompany('阿里巴巴');
       }
     } catch (err) {
       console.error('获取关注列表失败，使用默认公司');
-      setSelectedCompany('平安银行');
+      setSelectedCompany('阿里巴巴');
     }
   };
 
@@ -116,50 +135,77 @@ export default function EmotionPage() {
     setError(null);
     
     try {
-      // 使用智能缓存获取数据
       const cacheKey = `emotion-${company}`;
       const result = await dataCache.fetchWithCache(
         cacheKey,
         async () => {
-          const [scoreResponse, trendResponse] = await Promise.all([
-            emotionApi.getScore(company),
-            emotionApi.getTrend(company, 30),
-          ]);
+          // V2.0: 使用新的API端点（支持真实数据）
+          const response = await emotionApi.getScore(company);
           
-          const scoreResult: any = scoreResponse?.data || scoreResponse;
-          const trendResult: any = trendResponse?.data || trendResponse;
+          const result: any = response?.data || response;
           
-          const scoreData = scoreResult?.data || scoreResult;
-          const trendData = trendResult?.data || trendResult;
+          // V2.0 API响应格式
+          const scoreData = result?.data || result;
+          const source = result?.source || 'live';
+          const isReal = result?.is_real_data || false;
+          const realSource = result?.real_source || null;
+          const meta = result?.metadata || {};
           
-          if (!scoreData || !trendData) {
-            throw new Error('Empty response from server');
+          // 获取趋势数据
+          let trendData: any = null;
+          try {
+            const trendResponse = await emotionApi.getTrend(company, 30);
+            const trendResult: any = trendResponse?.data || trendResponse;
+            trendData = trendResult?.data || trendResult;
+          } catch (trendErr) {
+            console.warn('获取趋势数据失败:', trendErr);
+            trendData = { trend: [] };
           }
           
-          return { score: scoreData, trend: trendData };
+          return { 
+            score: scoreData, 
+            trend: trendData,
+            source,
+            isRealData: isReal,
+            realSource: realSource,
+            metadata: meta
+          };
         },
         () => {
-          // Fallback函数 - 返回本地生成的数据
           const fallback = getFallbackEmotionData(company);
-          return { score: fallback.score, trend: fallback.trend };
+          return { 
+            score: fallback.score, 
+            trend: fallback.trend,
+            source: 'fallback' as const,
+            isRealData: false,
+            realSource: null,
+            metadata: { is_real_data: false, data_source: 'simulation' }
+          };
         }
       );
       
       setEmotionScore(result.data.score);
       setEmotionTrend(result.data.trend);
-      setDataSource(result.source);
       
-      // 更新数据年龄
+      // V2.0: 设置增强的状态
+      setDataSource(result.data.source === 'real' ? 'live' : result.data.source);
+      setIsRealData(result.data.isRealData);
+      setRealSource(result.data.realSource);
+      setMetadata(result.data.metadata);
+      
       const age = dataCache.getAgeInSeconds(cacheKey);
       setDataAge(age);
       
-      // 根据数据来源设置错误提示
-      if (result.source === 'fallback') {
-        setError('显示示例数据（后端服务不可用）');
-      } else if (result.source === 'cached') {
-        setError(null); // 缓存数据不显示错误
+      // 根据数据来源设置提示信息
+      if (result.data.source === 'fallback') {
+        setError('⚠️ 显示示例数据（所有数据源不可用）');
+      } else if (!result.data.isRealData && result.data.source !== 'fallback') {
+        setError('ℹ️ 显示非实时数据（基于新闻NLP分析）');
+      } else if (result.data.isRealData) {
+        setError(null);
+        console.log(`✅ ${company}: 真实金融数据已加载 (source=${result.data.realSource})`);
       } else {
-        setError(null); // 实时数据正常
+        setError(null);
       }
     } catch (err: any) {
       console.error('获取情绪数据完全失败:', err.message);
@@ -167,8 +213,11 @@ export default function EmotionPage() {
       setEmotionScore(fallback.score);
       setEmotionTrend(fallback.trend);
       setDataSource('fallback');
+      setIsRealData(false);
+      setRealSource(null);
+      setMetadata({ is_real_data: false, data_source: 'simulation' });
       setDataAge(0);
-      setError('网络连接失败，显示示例数据（非实时）');
+      setError('❌ 网络连接失败，显示示例数据');
     } finally {
       setLoading(false);
     }
@@ -238,11 +287,12 @@ export default function EmotionPage() {
   };
 
   const defaultCompanies = [
-    { id: 'default-1', company_name: '平安银行', stock_code: '000001' },
-    { id: 'default-2', company_name: '贵州茅台', stock_code: '600519' },
-    { id: 'default-3', company_name: '比亚迪', stock_code: '002594' },
-    { id: 'default-4', company_name: '腾讯控股', stock_code: '00700' },
+    { id: 'default-1', company_name: '阿里巴巴', stock_code: 'BABA' },
+    { id: 'default-2', company_name: '平安银行', stock_code: '000001' },
+    { id: 'default-3', company_name: '贵州茅台', stock_code: '600519' },
+    { id: 'default-4', company_name: '比亚迪', stock_code: '002594' },
     { id: 'default-5', company_name: '宁德时代', stock_code: '300750' },
+    { id: 'default-6', company_name: '腾讯控股', stock_code: '00700.HK' },
   ];
 
   const displayCompanies = follows.length > 0 ? follows : defaultCompanies;
@@ -257,16 +307,28 @@ export default function EmotionPage() {
 
         {/* Error/Warning Banner */}
         {error && (
-          <div className="mb-6 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
+          <div className={`mb-6 border-l-4 p-4 rounded ${
+            error.includes('示例数据') ? 'bg-yellow-50 border-yellow-400' :
+            error.includes('非实时') ? 'bg-blue-50 border-blue-400' :
+            'bg-red-50 border-red-400'
+          }`}>
             <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-yellow-800">
-                ⚠️ {error}
+              <p className={`text-sm font-medium ${
+                error.includes('示例数据') ? 'text-yellow-800' :
+                error.includes('非实时') ? 'text-blue-800' :
+                'text-red-800'
+              }`}>
+                {error}
               </p>
               <button
                 onClick={() => selectedCompany && fetchEmotionData(selectedCompany)}
-                className="ml-4 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 text-sm font-medium"
+                className={`ml-4 px-4 py-2 text-white rounded-lg hover:opacity-90 text-sm font-medium ${
+                  error.includes('示例数据') ? 'bg-yellow-600' :
+                  error.includes('非实时') ? 'bg-blue-600' :
+                  'bg-red-600'
+                }`}
               >
-                重试
+                刷新数据
               </button>
             </div>
           </div>
@@ -278,7 +340,7 @@ export default function EmotionPage() {
           <div className="md:col-span-1">
             <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
-                选择公司 {follows.length === 0 && <span className="text-sm text-gray-500">(示例)</span>}
+                选择公司 {follows.length === 0 && <span className="text-sm text-gray-500">(默认)</span>}
               </h2>
               <div className="space-y-2">
                 {displayCompanies.map((company) => (
@@ -305,14 +367,35 @@ export default function EmotionPage() {
             {loading ? (
               <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-16 text-center">
                 <div className="animate-spin rounded-full h-10 w-10 border-2 border-primary-500 border-t-transparent mx-auto" />
-                <p className="mt-4 text-gray-600 dark:text-gray-400">加载中...</p>
+                <p className="mt-4 text-gray-600 dark:text-gray-400">
+                  {isRealData ? '正在获取真实金融数据...' : '加载中...'}
+                </p>
               </div>
             ) : emotionScore && emotionTrend ? (
               <>
                 <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-8">
-                  <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-start justify-between mb-8">
                     <div>
-                      <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{selectedCompany}</h2>
+                      <h2 className="text-2xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        {selectedCompany}
+                        {isRealData && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-green-100 text-green-800">
+                            ✓ 实时
+                          </span>
+                        )}
+                      </h2>
+                      
+                      {metadata?.stock_code && (
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                          股票代码: {metadata.stock_code}
+                          {realSource && (
+                            <span className="ml-2 text-xs bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">
+                              数据源: {realSource.toUpperCase()}
+                            </span>
+                          )}
+                        </p>
+                      )}
+
                       <div className="flex items-center gap-3 mt-3">
                         <span className="text-5xl">{getEmotionIcon(emotionScore.current_label)}</span>
                         <span className={`font-bold text-4xl ${getEmotionTextColor(emotionScore.current_score)}`}>
@@ -320,7 +403,14 @@ export default function EmotionPage() {
                         </span>
                         <span className="text-gray-500 dark:text-gray-400 text-lg">分</span>
                       </div>
+
+                      {metadata?.reasoning && (
+                        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 italic">
+                          📊 分析依据: {metadata.reasoning}
+                        </p>
+                      )}
                     </div>
+
                     <div className={`px-6 py-3 rounded-xl font-bold text-xl ${
                       emotionScore.current_label === 'positive'
                         ? 'bg-green-500 dark:bg-green-600 text-white shadow-lg shadow-green-500/30'
@@ -331,43 +421,102 @@ export default function EmotionPage() {
                       {emotionScore.current_label === 'positive' ? '积极' :
                        emotionScore.current_label === 'negative' ? '消极' : '中性'}
                     </div>
-                    
-                    {dataSource && (
-                      <div className="mt-3 flex items-center gap-2 text-xs">
-                        <span className={`px-2 py-1 rounded-md font-medium ${getSourceBadge(dataSource).className}`}>
-                          {getSourceBadge(dataSource).text}
+                  </div>
+
+                  {/* V2.0: 数据来源和技术指标展示 */}
+                  {(dataSource || metadata) && (
+                    <div className="mb-6 space-y-3">
+                      {/* 数据来源标签 */}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`px-2 py-1 rounded-md font-medium text-xs ${getSourceBadge(dataSource || 'fallback').className}`}>
+                          {getSourceBadge(dataSource || 'fallback').text}
                         </span>
+                        
+                        {isRealData && realSource && (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-bold bg-green-100 text-green-800">
+                            <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+                            真实金融数据 ({realSource.toUpperCase()})
+                          </span>
+                        )}
+                        
+                        {!isRealData && dataSource !== 'fallback' && (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800">
+                            新闻NLP分析
+                          </span>
+                        )}
+                        
+                        {dataSource === 'fallback' && (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium bg-orange-100 text-orange-800">
+                            ⚠️ 示例模拟数据
+                          </span>
+                        )}
+
                         {dataAge !== null && (
-                          <span className={`flex items-center gap-1 ${
+                          <span className={`flex items-center gap-1 text-xs ${
                             dataAge < 300 ? 'text-green-500' :
                             dataAge < 1800 ? 'text-yellow-500' : 'text-red-500'
                           }`}>
                             {getDataFreshnessLabel(dataAge).icon} {getDataFreshnessLabel(dataAge).label}
                           </span>
                         )}
-                        {dataSource !== 'live' && (
-                          <span className="group relative inline-flex items-center gap-1 text-gray-400 dark:text-gray-500 cursor-help">
-                            (非实时数据，仅供参考)
-                            <span className="inline-flex items-center justify-center w-4 h-4 text-[10px] font-bold text-white bg-gray-400 dark:bg-gray-500 rounded-full">
-                              ?
-                            </span>
-                            <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-72 px-3 py-2 text-xs text-white bg-gray-900 dark:bg-gray-700 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                              <div className="font-semibold mb-1">📊 数据来源说明</div>
-                              <ul className="space-y-1 text-left">
-                                <li>• <strong>实时数据</strong>: 从后端API获取的最新情绪分析结果</li>
-                                <li>• <strong>缓存数据</strong>: 30分钟内的历史数据（可能不是最新）</li>
-                                <li>• <strong>示例数据</strong>: 后端不可用时显示的模拟数据（基于算法生成）</li>
-                              </ul>
-                              <div className="mt-2 pt-2 border-t border-gray-600 text-[10px] text-gray-300">
-                                ⚠️ 当前显示为示例数据，仅供界面展示参考，不构成投资建议。真实金融数据集成（AKShare/Alpha Vantage）正在开发中。
-                              </div>
-                              <span className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900 dark:border-t-gray-700"></span>
-                            </span>
+
+                        {/* ❓ Tooltip */}
+                        <span className="group relative inline-flex items-center gap-1 text-gray-400 dark:text-gray-500 cursor-help ml-2">
+                          <span className="inline-flex items-center justify-center w-4 h-4 text-[10px] font-bold text-white bg-gray-400 dark:bg-gray-500 rounded-full">
+                            ?
                           </span>
-                        )}
+                          <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-80 px-3 py-2 text-xs text-white bg-gray-900 dark:bg-gray-700 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                            <div className="font-semibold mb-2">📊 数据来源说明 (V2.0)</div>
+                            <ul className="space-y-1.5 text-left">
+                              <li>✅ <strong>实时数据</strong>: AKShare/Alpha Vantage真实股价</li>
+                              <li>&nbsp;&nbsp;&nbsp;&nbsp;→ 基于涨跌幅、波动率、RSI、MA等量化指标计算</li>
+                              <li>📰 <strong>新闻NLP</strong>: 数据库中的新闻情绪分析结果</li>
+                              <li>⚠️ <strong>示例数据</strong>: 所有数据源不可用时的模拟数据</li>
+                            </ul>
+                            <div className="mt-2 pt-2 border-t border-gray-600 text-[10px] text-gray-300">
+                              💡 当前状态: {isRealData ? '✓ 已接入真实金融数据' : dataSource === 'fallback' ? '⚠️ 示例模式' : 'ℹ️ 非实时'}
+                              <br/>
+                              {isRealData && `🔗 数据源: ${realSource?.toUpperCase()}`}
+                            </div>
+                            <span className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900 dark:border-t-gray-700"></span>
+                          </span>
+                        </span>
                       </div>
-                    )}
-                  </div>
+
+                      {/* 技术指标详情 */}
+                      {isRealData && metadata?.indicators && Object.keys(metadata.indicators).length > 0 && (
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                          {Object.entries(metadata.indicators).map(([key, value]) => (
+                            <div key={key} className="text-center">
+                              <p className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                {key.replace(/_/g, ' ')}
+                              </p>
+                              <p className="text-sm font-bold text-gray-900 dark:text-white">
+                                {typeof value === 'number' ? value.toFixed(1) : String(value)}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* 实时行情快照 */}
+                      {isRealData && metadata?.realtime_data && (
+                        <div className="flex items-center gap-4 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg text-sm">
+                          <span className="font-semibold text-gray-700 dark:text-gray-300">💹 实时行情:</span>
+                          {metadata.realtime_data.price && (
+                            <span className="text-gray-900 dark:text-white font-mono">
+                              ¥{metadata.realtime_data.price.toFixed(2)}
+                            </span>
+                          )}
+                          {metadata.realtime_data.change_pct !== undefined && (
+                            <span className={`font-mono ${Number(metadata.realtime_data.change_pct) >= 0 ? 'text-red-600' : 'text-green-600'}`}>
+                              {Number(metadata.realtime_data.change_pct) >= 0 ? '+' : ''}{metadata.realtime_data.change_pct.toFixed(2)}%
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-3 gap-5">
                     <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-5 text-center">
@@ -399,7 +548,12 @@ export default function EmotionPage() {
                 </div>
 
                 <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-8">
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">📈 近30天情绪趋势</h2>
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+                    📈 近30天情绪趋势
+                    {isRealData && (
+                      <span className="text-xs font-normal text-green-600">(基于真实股价)</span>
+                    )}
+                  </h2>
                   <div className="h-80">
                     <LineChart data={lineChartData} options={chartOptions} />
                   </div>
