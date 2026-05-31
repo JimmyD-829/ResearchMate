@@ -121,6 +121,75 @@ class RealEmotionService:
             logger.error(f"获取{symbol}历史数据失败: {e}")
             return None
     
+    def _normalize_realtime_data(self, data: Dict) -> Dict:
+        """
+        标准化实时数据字段名
+        
+        统一不同数据源的字段格式:
+        - Alpha Vantage: change_percent → change_pct
+        - AKShare: change_pct (保持不变)
+        
+        Args:
+            data: 原始实时数据字典
+            
+        Returns:
+            标准化后的数据字典
+        """
+        if not data:
+            return data
+        
+        normalized = data.copy()
+        
+        # 字段映射表
+        field_mappings = {
+            'change_percent': 'change_pct',      # Alpha Vantage
+            'change': 'price_change',           # 统一字段名
+            'latest_trading_day': 'trade_date', # 统一字段名
+            'prev_close': 'previous_close',     # 统一字段名
+        }
+        
+        # 执行字段映射
+        for old_key, new_key in field_mappings.items():
+            if old_key in normalized and new_key not in normalized:
+                normalized[new_key] = normalized.pop(old_key)
+        
+        # 计算派生字段 (如果不存在)
+        if 'change_pct' not in normalized or normalized['change_pct'] is None:
+            if 'price' in normalized and 'previous_close' in normalized:
+                price = float(normalized.get('price', 0))
+                prev_close = float(normalized.get('previous_close', 0))
+                if prev_close > 0:
+                    normalized['change_pct'] = round((price - prev_close) / prev_close * 100, 2)
+                else:
+                    normalized['change_pct'] = 0.0
+            elif 'price_change' in normalized and 'price' in normalized:
+                price_change = float(normalized.get('price_change', 0))
+                price = float(normalized.get('price', 0))
+                if price > 0:
+                    normalized['change_pct'] = round(price_change / price * 100, 2)
+                else:
+                    normalized['change_pct'] = 0.0
+            else:
+                normalized['change_pct'] = 0.0
+        
+        # 计算振幅
+        if 'amplitude' not in normalized:
+            high = float(normalized.get('high', 0))
+            low = float(normalized.get('low', 0))
+            if high > 0 and low > 0:
+                normalized['amplitude'] = high - low
+        
+        # 确保数值类型正确
+        for field in ['price', 'volume', 'high', 'low']:
+            if field in normalized and normalized[field] is not None:
+                try:
+                    normalized[field] = float(normalized[field])
+                except (ValueError, TypeError):
+                    pass
+        
+        logger.debug(f"标准化实时数据: {list(normalized.keys())}")
+        return normalized
+    
     def calculate_technical_indicators(self, df: pd.DataFrame) -> Dict:
         """计算技术指标"""
         if df is None or len(df) < 5:
@@ -209,6 +278,10 @@ class RealEmotionService:
         """
         计算综合情绪分数
         
+        支持两种模式:
+        1. 完整模式: 实时数据 + 历史K线技术指标
+        2. 简化模式: 仅实时数据（当历史数据不可用时）
+        
         返回: (score, label, reasoning)
         
         分数范围: -100 到 +100
@@ -220,9 +293,11 @@ class RealEmotionService:
         weight_total = 0
         weighted_score = 0
         
-        # 1. 涨跌幅权重 (40%)
+        has_technical_indicators = len(indicators) > 0
+        
+        # 1. 涨跌幅权重 (40% in full mode, 70% in simple mode)
         if 'change_pct' in real_time:
-            change_pct = float(real_time.get('change_pct', 0))
+            change_pct = float(real_time.get('change_pct', 0) or 0)
             
             # 非线性映射: ±3%以内正常, 超过±5%极端
             if change_pct > 5:
@@ -238,85 +313,129 @@ class RealEmotionService:
             else:
                 component_score = max(change_pct * 8, -40)  # 最小-40分
             
-            weighted_score += component_score * 0.4
-            weight_total += 0.4
+            # 动态调整权重：如果没有技术指标，提高涨跌幅权重
+            price_weight = 0.7 if not has_technical_indicators else 0.4
+            
+            weighted_score += component_score * price_weight
+            weight_total += price_weight
             score_components.append(('price_change', component_score))
             
             if abs(change_pct) > 3:
                 reasoning_parts.append(f"{'大涨' if change_pct > 3 else '大跌'}{abs(change_pct):.1f}%")
             elif abs(change_pct) > 1:
                 reasoning_parts.append(f"{'上涨' if change_pct > 0 else '下跌'}{abs(change_pct):.1f}%")
-        
-        # 2. 波动率权重 (20%) - 高波动减分
-        if 'volatility' in indicators:
-            vol = indicators['volatility']
-            
-            # A股正常波动率约20-30%, 超过40%为高波动
-            if vol < 15:
-                vol_score = +10  # 低波动=稳定=正面
-            elif vol < 25:
-                vol_score = 0   # 正常波动
-            elif vol < 35:
-                vol_score = -10  # 较高波动
+            elif abs(change_pct) > 0.1:
+                reasoning_parts.append(f"微{'涨' if change_pct > 0 else '跌'}{abs(change_pct):.2f}%")
             else:
-                vol_score = -20  # 极高波动
-            
-            weighted_score += vol_score * 0.2
-            weight_total += 0.2
-            score_components.append(('volatility', vol_score))
-            
-            if vol > 35:
-                reasoning_parts.append("波动剧烈")
-            elif vol < 15:
-                reasoning_parts.append("走势平稳")
+                reasoning_parts.append("平盘")
         
-        # 3. RSI权重 (20%)
-        if 'rsi' in indicators:
-            rsi = indicators['rsi']
+        # 仅在有技术指标时才计算以下指标
+        if has_technical_indicators:
+            # 2. 波动率权重 (20%)
+            if 'volatility' in indicators:
+                vol = indicators['volatility']
+                
+                # A股正常波动率约20-30%, 超过40%为高波动
+                if vol < 15:
+                    vol_score = +10  # 低波动=稳定=正面
+                elif vol < 25:
+                    vol_score = 0   # 正常波动
+                elif vol < 35:
+                    vol_score = -10  # 较高波动
+                else:
+                    vol_score = -20  # 极高波动
+                
+                weighted_score += vol_score * 0.2
+                weight_total += 0.2
+                score_components.append(('volatility', vol_score))
+                
+                if vol > 35:
+                    reasoning_parts.append("波动剧烈")
+                elif vol < 15:
+                    reasoning_parts.append("走势平稳")
             
-            if rsi > 70:
-                rsi_score = -5  # 超买区=可能回调
-            elif rsi > 50:
-                rsi_score = +10  # 强势区域
-            elif rsi > 30:
-                rsi_score = -5   # 弱势区域
-            else:
-                rsi_score = +5   # 超卖区=可能反弹
+            # 3. RSI权重 (20%)
+            if 'rsi' in indicators:
+                rsi = indicators['rsi']
+                
+                if rsi > 70:
+                    rsi_score = -5  # 超买区=可能回调
+                elif rsi > 50:
+                    rsi_score = +10  # 强势区域
+                elif rsi > 30:
+                    rsi_score = -5   # 弱势区域
+                else:
+                    rsi_score = +5   # 超卖区=可能反弹
+                
+                weighted_score += rsi_score * 0.2
+                weight_total += 0.2
+                score_components.append(('rsi', rsi_score))
+                
+                if rsi > 70:
+                    reasoning_parts.append("RSI超买")
+                elif rsi < 30:
+                    reasoning_parts.append("RSI超卖")
             
-            weighted_score += rsi_score * 0.2
-            weight_total += 0.2
-            score_components.append(('rsi', rsi_score))
+            # 4. MA趋势权重 (20%)
+            if 'ma_trend' in indicators:
+                trend = indicators['ma_trend']
+                
+                trend_scores = {
+                    'strong_bullish': +20,
+                    'bullish': +12,
+                    'neutral': 0,
+                    'bearish': -12,
+                    'strong_bearish': -20
+                }
+                
+                trend_score = trend_scores.get(trend, 0)
+                weighted_score += trend_score * 0.2
+                weight_total += 0.2
+                score_components.append(('ma_trend', trend_score))
+                
+                trend_labels = {
+                    'strong_bullish': '多头强势',
+                    'bullish': '多头趋势',
+                    'neutral': '震荡整理',
+                    'bearish': '空头趋势',
+                    'strong_bearish': '空头强势'
+                }
+                reasoning_parts.append(trend_labels.get(trend, '未知'))
+        else:
+            # 简化模式：使用实时数据的其他维度补充
+            # 2a. 成交量变化 (15%)
+            if real_time.get('volume_ratio'):
+                vol_ratio = float(real_time['volume_ratio'])
+                if vol_ratio > 1.5:
+                    vol_score = +8  # 放量
+                elif vol_ratio < 0.7:
+                    vol_score = -5  # 缩量
+                else:
+                    vol_score = 0
+                
+                weighted_score += vol_score * 0.15
+                weight_total += 0.15
+                
+                if vol_ratio > 1.5:
+                    reasoning_parts.append("放量")
+                elif vol_ratio < 0.7:
+                    reasoning_parts.append("缩量")
             
-            if rsi > 70:
-                reasoning_parts.append("RSI超买")
-            elif rsi < 30:
-                reasoning_parts.append("RSI超卖")
-        
-        # 4. MA趋势权重 (20%)
-        if 'ma_trend' in indicators:
-            trend = indicators['ma_trend']
-            
-            trend_scores = {
-                'strong_bullish': +20,
-                'bullish': +12,
-                'neutral': 0,
-                'bearish': -12,
-                'strong_bearish': -20
-            }
-            
-            trend_score = trend_scores.get(trend, 0)
-            weighted_score += trend_score * 0.2
-            weight_total += 0.2
-            score_components.append(('ma_trend', trend_score))
-            
-            trend_labels = {
-                'strong_bullish': '多头强势',
-                'bullish': '多头趋势',
-                'neutral': '震荡整理',
-                'bearish': '空头趋势',
-                'strong_bearish': '空头强势'
-            }
-            reasoning_parts.append(trend_labels.get(trend, '未知'))
+            # 2b. 振幅指标 (15%)
+            if real_time.get('amplitude') and real_time.get('price'):
+                amplitude = float(real_time['amplitude'])
+                price = float(real_time['price'])
+                amplitude_pct = (amplitude / price) * 100 if price > 0 else 0
+                
+                if amplitude_pct > 4:
+                    amp_score = -6  # 高振幅=不稳定
+                elif amplitude_pct < 1:
+                    amp_score = +3  # 低振幅=稳定
+                else:
+                    amp_score = 0
+                
+                weighted_score += amp_score * 0.15
+                weight_total += 0.15
         
         # 归一化分数
         final_score = weighted_score / weight_total if weight_total > 0 else 0
@@ -331,7 +450,9 @@ class RealEmotionService:
             label = 'neutral'
         
         # 生成推理文本
-        reasoning = '、'.join(reasoning_parts[:3]) if reasoning_parts else '数据不足'
+        reasoning = '、'.join(reasoning_parts[:3]) if reasoning_parts else (
+            '基于实时行情分析' if not has_technical_indicators else '数据不足'
+        )
         
         return round(final_score, 1), label, reasoning
     
@@ -399,6 +520,9 @@ class RealEmotionService:
                     }
                 else:
                     return None
+            
+            # 标准化字段名 - 统一不同数据源的格式
+            realtime_data = self._normalize_realtime_data(realtime_data)
             
             # 计算技术指标
             indicators = self.calculate_technical_indicators(history_df)
