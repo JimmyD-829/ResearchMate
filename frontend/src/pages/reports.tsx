@@ -114,9 +114,9 @@ export default function ReportsPage() {
     try {
       console.log('寮€濮嬫ā鎷熻繘搴?..');
       await simulateProgress(0, 30, 800, 'uploading');
-      console.log('涓婁紶瀹屾垚锛屽紑濮嬭В鏋?..');
+      console.log('上传完成，开始解析...');
       await simulateProgress(30, 60, 1200, 'parsing');
-      console.log('瑙ｆ瀽瀹屾垚锛屽紑濮嬪垎鏋?..');
+      console.log('解析完成，开始分析...');
       await simulateProgress(60, 90, 1500, 'analyzing');
 
       console.log('鐢熸垚绀轰緥鏁版嵁...');
@@ -171,7 +171,7 @@ export default function ReportsPage() {
 **椋庨櫓鏀剁泭姣?*: 鍦ㄥ綋鍓嶄环浣嶅叿澶囬槻寰″睘鎬э紝閫傚悎闀挎湡閰嶇疆`
       };
 
-      console.log('绀轰緥鏁版嵁鐢熸垚瀹屾垚锛屾洿鏂扮姸鎬?..');
+      console.log('示例数据生成完成，更新状态');
       await simulateProgress(90, 100, 300, 'success');
       setReports(prev => [sampleData, ...prev]);
       setUploadStep('success');
@@ -215,10 +215,10 @@ export default function ReportsPage() {
       }, 1500);
     } catch (err: any) {
       setUploadStep('error');
-      console.error('涓婁紶閿欒璇︽儏:', err);
+      console.error('上传错误详情:', err);
 
       if (err.code === 'ECONNABORTED') {
-        setError('璇锋眰瓒呮椂锛屾湇鍔″櫒鍝嶅簲鏃堕棿杩囬暱銆傝绋嶅悗閲嶈瘯鎴栨鏌ョ綉缁滆繛鎺ャ€?);
+        setError('请求超时，服务器响应时间过长。请稍后重试或检查网络连接');
       } else if (err.response) {
         const status = err.response.status;
         const detail = err.response.data?.detail || err.response.data?.message;
@@ -230,7 +230,7 @@ export default function ReportsPage() {
         } else if (status === 413) {
           setError('鏂囦欢杩囧ぇ锛堟渶澶ф敮鎸?0MB锛夛紝璇峰帇缂╁悗閲嶆柊涓婁紶');
         } else if (status >= 500) {
-          setError(`鏈嶅姟鍣ㄥ唴閮ㄩ敊璇?(${status})锛岃绋嶅悗閲嶈瘯`);
+          setError(`服务器内部错误(${status})，请稍后重试`);
         } else {
           setError(`涓婁紶澶辫触: ${detail || `HTTP ${status}`}`);
         }
@@ -238,7 +238,7 @@ export default function ReportsPage() {
         if (err.message.includes('Network Error')) {
           setError('缃戠粶杩炴帴澶辫触锛岃妫€鏌ョ綉缁滃悗閲嶈瘯');
         } else if (err.message.includes('timeout')) {
-          setError('璇锋眰瓒呮椂锛岃绋嶅悗閲嶈瘯');
+          setError('请求超时，请稍后重试');
         } else {
           setError(`涓婁紶澶辫触: ${err.message}`);
         }
@@ -264,7 +264,7 @@ export default function ReportsPage() {
       case 'uploading': return '姝ｅ湪涓婁紶...';
       case 'parsing': return '姝ｅ湪瑙ｆ瀽璐㈡姤...';
       case 'analyzing': return 'AI鍒嗘瀽涓?..';
-      case 'success': return '鍒嗘瀽瀹屾垚锛?;
+      case 'success': return '分析完成';
       case 'error': return '鍒嗘瀽澶辫触';
       default: return '';
     }
@@ -373,7 +373,7 @@ export default function ReportsPage() {
                 disabled={uploading}
                 className="relative px-8 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 disabled:from-gray-400 disabled:to-gray-400 text-white font-semibold rounded-xl transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
               >
-                鉁?鏌ョ湅绀轰緥鍒嗘瀽锛堟棤闇€涓婁紶锛?              </button>
+                📋 查看示例分析（无需上传）
             </div>
             <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">浣撻獙瀹屾暣鍒嗘瀽鍔熻兘锛屼簡瑙ｆ姤鍛婃牱寮?/p>
           </div>
@@ -413,7 +413,7 @@ export default function ReportsPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
               <p className="text-gray-600 dark:text-gray-400">鏆傛棤璐㈡姤瑙ｆ瀽璁板綍</p>
-              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">涓婁紶璐㈡姤鎴栫偣鍑?鏌ョ湅绀轰緥鍒嗘瀽"寮€濮嬩綋楠?/p>
+              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">上传财报或点击"查看示例分析"开始体验</p>
             </div>
           ) : (
             <>
@@ -458,7 +458,7 @@ export default function ReportsPage() {
                   <div key={report.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-3">
-                        <h3 className="text-base font-semibold text-gray-900 dark:text-white">{report.company_name || report.id?.includes('sample') ? '绀轰緥鍒嗘瀽' : '鏈煡'}</h3>
+                        <h3 className="text-base font-semibold text-gray-900 dark:text-white">{report.company_name || report.id?.includes("sample") ? "示例分析" : "未知"}</h3>
                         {report.stock_code && (
                           <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">{report.stock_code}</span>
                         )}
@@ -557,7 +557,7 @@ export default function ReportsPage() {
           )}
         </div>
 
-        {/* 澶辫触璇︽儏寮圭獥 */}
+        {/* 失败详情弹窗 */}
         {selectedFailedReport && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedFailedReport(null)}>
             <div 
@@ -568,7 +568,7 @@ export default function ReportsPage() {
               <div className="p-6 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between">
                   <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                    鉂?瑙ｆ瀽澶辫触璇︽儏
+                    ❌ 解析失败详情
                   </h3>
                   <button
                     onClick={() => setSelectedFailedReport(null)}
@@ -580,7 +580,7 @@ export default function ReportsPage() {
                   </button>
                 </div>
                 <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                  鏂囦欢: {selectedFailedReport.id?.includes('sample') ? '绀轰緥鍒嗘瀽' : (selectedFailedReport.company_name || '鏈煡鏂囦欢')}
+                  文件: {selectedFailedReport.id?.includes('sample') ? '示例分析' : (selectedFailedReport.company_name || '未知文件')}
                   {selectedFailedReport.upload_time && ` 路 ${formatDate(selectedFailedReport.upload_time)}`}
                 </p>
               </div>
@@ -635,7 +635,7 @@ export default function ReportsPage() {
                     </li>
                     <li className="flex items-start gap-2">
                       <span>鉁?/span>
-                      <span><strong>妫€鏌ョ綉缁滆繛鎺?/strong>: 纭缃戠粶绋冲畾锛屾垨绋嶅悗閲嶈瘯</span>
+                      <span><strong>检查网络连接</strong>: 确保网络稳定，或稍后重试</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span>鉁?/span>
