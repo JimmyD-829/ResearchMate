@@ -14,6 +14,7 @@ import pandas as pd
 
 from ..providers.akshare_provider import AKShareProvider
 from ..providers.alpha_vantage_provider import AlphaVantageProvider
+from ..utils.smart_cache import get_cache
 
 logger = logging.getLogger(__name__)
 
@@ -475,6 +476,15 @@ class RealEmotionService:
             logger.warning(f"无法找到{company_name}对应的股票代码")
             return None
         
+        # 🔥 缓存优化：先检查是否有缓存的完整结果
+        cache = get_cache()
+        cache_key = f"real_emotion_{company_name}_{symbol}"
+        
+        cached_result = cache.get(cache_key)
+        if cached_result is not None:
+            logger.info(f"✨ 使用缓存的{company_name}真实情绪数据 (score={cached_result['score']['current_score']})")
+            return cached_result
+        
         logger.info(f"开始获取{company_name}({symbol})的真实情绪数据...")
         
         try:
@@ -572,6 +582,11 @@ class RealEmotionService:
             }
             
             logger.info(f"✅ {company_name}真实情绪数据获取成功: score={score}, source={source}")
+            
+            # ✅ 成功获取数据，存入缓存（30分钟）
+            cache.set(cache_key, result, ttl=30 * 60)
+            logger.info(f"💾 {company_name}情绪数据已缓存 (TTL: 30分钟)")
+            
             return result
             
         except Exception as e:

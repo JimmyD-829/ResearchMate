@@ -17,6 +17,8 @@ from typing import Optional, Dict, List
 from datetime import datetime
 import logging
 
+from ..utils.smart_cache import get_cache
+
 logger = logging.getLogger(__name__)
 
 class AlphaVantageProvider:
@@ -67,6 +69,16 @@ class AlphaVantageProvider:
     
     async def get_us_stock_quote(self, symbol: str) -> Optional[Dict]:
         try:
+            # 🔥 缓存优化：先检查缓存
+            cache = get_cache()
+            cache_key = f"alpha_vantage_quote_{symbol}"
+            
+            cached_data = cache.get(cache_key)
+            if cached_data is not None:
+                logger.info(f"✨ 使用缓存数据 ({symbol}): price=${cached_data.get('price')}")
+                return cached_data
+            
+            # 缓存未命中，调用API
             data = await self._make_request({
                 'function': 'GLOBAL_QUOTE',
                 'symbol': symbol
@@ -78,8 +90,7 @@ class AlphaVantageProvider:
             logger.info(f"🔍 Global Quote字段: {quote}")
             
             if quote and '01. symbol' in quote:
-                logger.info(f"✅ 成功解析{symbol}行情数据: price={quote.get('05. price')}")
-                return {
+                result = {
                     'symbol': quote.get('01. symbol'),
                     'open': float(quote.get('02. open', 0)),
                     'high': float(quote.get('03. high', 0)),
@@ -94,11 +105,21 @@ class AlphaVantageProvider:
                     'update_time': datetime.now().isoformat()
                 }
                 
+                # ✅ 成功获取数据，存入缓存（30分钟）
+                cache.set(cache_key, result, ttl=30 * 60)
+                logger.info(f"✅ 成功解析{symbol}行情数据并已缓存: price={result['price']}")
+                
+                return result
+                
+            # 检查是否是API限制错误
+            if 'Information' in data or 'Note' in data:
+                error_msg = data.get('Information') or data.get('Note')
+                logger.warning(f"⚠️ Alpha Vantage API限制 ({symbol})")
+                logger.warning(f"   错误信息: {error_msg[:200] if error_msg else 'Unknown'}")
+                
             logger.warning(f"Alpha Vantage未找到{symbol}的行情数据")
             logger.warning(f"   原始数据keys: {list(data.keys()) if data else 'None'}")
             logger.warning(f"   Global Quote内容: {quote if quote else 'Empty/None'}")
-            if 'Note' in data:
-                logger.warning(f"   ⚠️ API限制: {data['Note']}")
             return None
             
         except Exception as e:
