@@ -91,7 +91,10 @@ class EmotionService:
                 }
             
         except Exception as e:
-            logger.warning(f"获取{company_name}真实数据失败: {e}")
+            import traceback
+            logger.error(f"❌ 获取{company_name}真实数据失败: {e}")
+            logger.error(f"完整错误堆栈:\n{traceback.format_exc()}")
+            logger.error(f"可能原因: 1)Alpha Vantage API Key无效 2)网络超时 3)依赖缺失")
         
         # 尝试2: 使用新闻情绪分析（原有逻辑）
         try:
