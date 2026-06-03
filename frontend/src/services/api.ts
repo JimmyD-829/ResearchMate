@@ -94,6 +94,10 @@ export interface EmotionScore {
   current_label: string;
   last_7d_avg: number;
   last_30d_avg: number;
+  article_count?: number;
+  positive_count?: number;
+  negative_count?: number;
+  neutral_count?: number;
 }
 
 export interface EmotionTrendData {
@@ -105,6 +109,12 @@ export interface EmotionTrendData {
 export interface EmotionTrendResponse {
   company_name: string;
   trend: EmotionTrendData[];
+  summary?: {
+    avg_score?: number;
+    volatility?: number;
+    trend_direction?: string;
+    total_articles?: number;
+  };
 }
 
 export const authApi = {

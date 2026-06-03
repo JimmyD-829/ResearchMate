@@ -475,7 +475,7 @@ const MonitorPage: React.FC = () => {
               </div>
 
               {/* Log rows */}
-              <div className="divide-y" style={{ divideColor: 'rgba(255,255,255,0.03)' }}>
+              <div className="divide-y divide-white/[0.03]">
                 {data.recent_requests.length > 0 ? (
                   data.recent_requests.map((req, i) => (
                     <div
