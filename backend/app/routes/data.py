@@ -3,7 +3,7 @@
 """
 
 from fastapi import APIRouter, HTTPException, Query
-from typing import Optional, List
+from typing import Optional, List, Dict
 from datetime import datetime
 import logging
 
