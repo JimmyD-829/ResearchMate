@@ -288,6 +288,7 @@ async def debug_relay_test():
         import requests
         s = requests.Session()
         s.trust_env = False
+        s.headers.update({"ngrok-skip-browser-warning": "1"})
         url = akshare_provider.relay_url + "/health"
         r = s.get(url, headers={"X-Relay-Key": akshare_provider.relay_key}, timeout=20)
         result["relay_health"] = {"status": r.status_code, "body": r.text[:200]}
@@ -300,6 +301,7 @@ async def debug_relay_test():
         import requests
         s = requests.Session()
         s.trust_env = False
+        s.headers.update({"ngrok-skip-browser-warning": "1"})
         url = akshare_provider.relay_url + "/api/stock/quote"
         r = s.get(url, params={"symbol": "600519"},
                   headers={"X-Relay-Key": akshare_provider.relay_key}, timeout=20)

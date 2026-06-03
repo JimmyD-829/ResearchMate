@@ -52,6 +52,7 @@ class AKShareProvider:
             "X-Relay-Key": self.relay_key,
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             "Accept": "application/json",
+            "ngrok-skip-browser-warning": "1",  # 绕过ngrok免费版警告页
         }
 
     # ==================== 代理模式：HTTP客户端 (requests) ====================
@@ -305,14 +306,15 @@ class AKShareProvider:
         """检查数据源连通性"""
         if self.mode == "proxy":
             try:
-                async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=5)) as session:
-                    async with session.get(
-                        f"{self.relay_url}/health",
-                        headers={"X-Relay-Key": self.relay_key}
-                    ) as resp:
-                        if resp.status == 200:
-                            return {"mode": "proxy", "status": "ok", "url": self.relay_url}
-                        return {"mode": "proxy", "status": "error", "http_status": resp.status}
+                import requests
+                s = requests.Session()
+                s.trust_env = False
+                s.headers.update(self._relay_headers)
+                r = s.get(f"{self.relay_url}/health", timeout=10)
+                s.close()
+                if r.status_code == 200:
+                    return {"mode": "proxy", "status": "ok", "url": self.relay_url}
+                return {"mode": "proxy", "status": "error", "http_status": r.status_code}
             except Exception as e:
                 return {"mode": "proxy", "status": "error", "detail": str(e)[:100]}
 
