@@ -42,7 +42,10 @@ export default function ReportsPage() {
     try {
       const response = await reportApi.getAll() as any;
       const reportsData = response?.data || response;
-      setReports(Array.isArray(reportsData) ? reportsData : []);
+      const list = Array.isArray(reportsData) ? reportsData : [];
+      // 按上传时间降序排列（最近的上传记录排在最前面）
+      list.sort((a, b) => new Date(b.upload_time).getTime() - new Date(a.upload_time).getTime());
+      setReports(list);
     } catch (err) {
       setError('获取报告列表失败');
     } finally {
