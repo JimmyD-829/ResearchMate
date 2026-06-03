@@ -56,15 +56,13 @@ class AKShareProvider:
 
     # ==================== 代理模式：HTTP客户端 (requests) ====================
 
-    # 关键：Render会设置HTTP_PROXY环境变量，必须显式禁用代理才能直连ngrok
-    _NO_PROXY = {"http": None, "https": None}
-
     def _http_get(self, url: str, params: Dict = None) -> Optional[Dict]:
-        """同步GET请求Relay（在线程池中调用）"""
+        """同步GET请求Relay（在线程池中调用）
+        trust_env=False: 忽略Render的HTTP_PROXY等环境变量，直连ngrok"""
         import requests
         try:
             resp = requests.get(url, params=params, headers=self._relay_headers,
-                              timeout=20, proxies=self._NO_PROXY)
+                              timeout=20, trust_env=False)
             if resp.status_code == 200:
                 return resp.json().get("data")
             elif resp.status_code == 404:
@@ -81,7 +79,7 @@ class AKShareProvider:
         import requests
         try:
             resp = requests.post(url, json=json_body, headers=self._relay_headers,
-                               timeout=20, proxies=self._NO_PROXY)
+                               timeout=20, trust_env=False)
             if resp.status_code == 200:
                 return resp.json().get("data")
             else:
