@@ -279,7 +279,7 @@ class AKShareProvider:
         """
         if self.mode == "proxy":
             data = await self._relay_post("/api/stock/batch", {"symbols": symbols})
-            return data if isinstance(data, dict) {}
+            return data if isinstance(data, dict) else {}
 
         # 直连模式：走全量拉取+过滤
         try:
