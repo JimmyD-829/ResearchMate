@@ -371,6 +371,197 @@ async def debug_relay_test():
     result["total_elapsed_ms"] = total_elapsed
     return result
 
+# ---- 简易请求日志记录（进程内内存缓存，用于Dashboard展示）----
+_request_log: List[Dict] = []
+_MAX_LOG_ENTRIES = 20
+
+
+def _log_request(entry: Dict):
+    """记录一条请求到内存日志（线程安全）"""
+    global _request_log
+    _request_log.append(entry)
+    if len(_request_log) > _MAX_LOG_ENTRIES:
+        _request_log = _request_log[-_MAX_LOG_ENTRIES:]
+
+
+def _get_recent_requests(count: int = 10) -> List[Dict]:
+    """获取最近的请求日志"""
+    return list(reversed(_request_log[-count:]))
+
+
+@router.get("/pipeline-status")
+async def get_pipeline_status():
+    """
+    数据链路聚合状态接口 - 供前端 Dashboard 使用
+
+    检测全链路各节点状态：Render API → ngrok → Relay → 数据源
+    返回结构化数据供前端渲染 Pipeline 可视化
+    """
+    import time as _time
+    t0 = _time.time()
+    import os
+
+    pipeline = {
+        "timestamp": datetime.now().isoformat(),
+        "pipeline": {},
+        "recent_requests": _get_recent_requests(10),
+        "alerts": [],
+        "env_summary": {
+            "relay_url_set": bool(os.environ.get("AKSHARE_RELAY_URL")),
+            "relay_key_set": bool(os.environ.get("AKSHARE_RELAY_KEY")),
+            "proxy_vars": len([v for v in ['HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY'] if os.environ.get(v)]),
+            "provider_mode": akshare_provider.mode,
+        },
+    }
+
+    # ====== 节点1: Render API (自身) ======
+    pipeline["pipeline"]["render_api"] = {
+        "name": "Render API",
+        "status": "ok",
+        "latency_ms": 1,
+        "detail": f"mode={akshare_provider.mode}",
+    }
+
+    # ====== 节点2: ngrok + Relay (连通性) ======
+    ngrok_status = {"name": "ngrok Tunnel", "status": "unknown", "latency_ms": None, "url": "N/A", "detail": ""}
+    relay_status = {"name": "Relay Server", "status": "unknown", "version": "-", "data_source": "-", "detail": ""}
+
+    if akshare_provider.mode == "proxy":
+        try:
+            import requests as _req
+            _t = _time.time()
+            _s = _req.Session()
+            _s.trust_env = False
+            _s.headers.update({"ngrok-skip-browser-warning": "1"})
+            _url = akshare_provider.relay_url + "/health"
+            _r = _s.get(_url, headers={"X-Relay-Key": akshare_provider.relay_key}, timeout=15)
+            _elapsed = round((_time.time() - _t) * 1000)
+
+            if _r.status_code == 200:
+                _body = _r.json()
+                ngrok_status["status"] = "ok"
+                ngrok_status["latency_ms"] = _elapsed
+                ngrok_status["url"] = akshare_provider.relay_url.replace("https://", "").split(".")[0] + "***"
+                ngrok_status["detail"] = f"{_elapsed}ms"
+
+                relay_status["status"] = "ok"
+                relay_status["version"] = _body.get("version", "?")
+                relay_status["data_source"] = _body.get("data_source", "?")
+                relay_status["detail"] = f"v{_body.get('version','?')} via {_body.get('data_source','?')}"
+            else:
+                ngrok_status["status"] = "error"
+                ngrok_status["latency_ms"] = _elapsed
+                ngrok_status["detail"] = f"HTTP {_r.status_code}"
+                relay_status["status"] = "error"
+                relay_status["detail"] = f"upstream returned {_r.status_code}"
+                pipeline["alerts"].append({
+                    "level": "error",
+                    "node": "ngrok",
+                    "message": f"Relay返回异常状态码 {_r.status_code}",
+                })
+            _s.close()
+        except Exception as e:
+            _elapsed = round((_time.time() - _t) * 1000)
+            ngrok_status["status"] = "error"
+            ngrok_status["latency_ms"] = _elapsed
+            ngrok_status["detail"] = f"{type(e).__name__}"
+            relay_status["status"] = "error"
+            relay_status["detail"] = "unreachable"
+            pipeline["alerts"].append({
+                "level": "error",
+                "node": "ngrok",
+                "message": f"无法连接Relay: {type(e).__name__}",
+            })
+    else:
+        # 直连模式，没有ngrok/relay
+        ngrok_status["status"] = "skipped"
+        ngrok_status["detail"] = "直连模式，不经过隧道"
+        relay_status["status"] = "skipped"
+        relay_status["detail"] = "直连模式"
+
+    pipeline["pipeline"]["ngrok"] = ngrok_status
+    pipeline["pipeline"]["relay_server"] = relay_status
+
+    # ====== 节点3: A股数据源 (腾讯财经 / Relay内部) ======
+    cn_source_status = {"name": "腾讯财经 (A股)", "status": "unknown", "last_query_ms": None, "detail": ""}
+
+    if akshare_provider.mode == "proxy":
+        # 通过Relay间接判断数据源健康度
+        cn_source_status["status"] = relay_status["status"]
+        cn_source_status["detail"] = "via Relay" if relay_status["status"] == "ok" else "Relay不可达"
+    else:
+        # 直连模式：快速测试AKShare
+        try:
+            _t2 = _time.time()
+            _test_data = await akshare_provider.get_realtime_quote("600519")
+            _elapsed2 = round((_time.time() - _t2) * 1000)
+            if _test_data:
+                cn_source_status["status"] = "ok"
+                cn_source_status["last_query_ms"] = _elapsed2
+                cn_source_status["detail"] = f"600519 ¥{_test_data.get('price','?')} ({_elapsed2}ms)"
+            else:
+                cn_source_status["status"] = "warning"
+                cn_source_status["detail"] = "查询成功但返回空数据"
+        except Exception as e:
+            cn_source_status["status"] = "error"
+            cn_source_status["detail"] = str(e)[:80]
+            pipeline["alerts"].append({
+                "level": "error",
+                "node": "cn_source",
+                "message": f"A股数据源异常: {str(e)[:60]}",
+            })
+
+    pipeline["pipeline"]["cn_data_source"] = cn_source_status
+
+    # ====== 节点4: 美股数据源 (AlphaVantage) ======
+    us_source_status = {"name": "AlphaVantage (美股)", "status": "unknown", "calls_remaining": None, "detail": ""}
+    try:
+        _t3 = _time.time()
+        _us_test = await alpha_vantage_provider.get_us_stock_quote("AAPL")
+        _elapsed3 = round((_time.time() - _t3) * 1000)
+        if _us_test:
+            us_source_status["status"] = "ok"
+            us_source_status["last_query_ms"] = _elapsed3
+            us_source_status["detail"] = f"AAPL ${_us_test.get('price','?')} ({_elapsed3}ms)"
+        else:
+            us_source_status["status"] = "warning"
+            us_source_status["detail"] = "查询成功但返回空数据"
+    except Exception as e:
+        us_source_status["status"] = "error"
+        us_source_status["detail"] = str(e)[:80]
+        pipeline["alerts"].append({
+            "level": "warning",
+            "node": "us_source",
+            "message": f"美股数据源异常: {str(e)[:60]}",
+        })
+
+    pipeline["pipeline"]["us_data_source"] = us_source_status
+
+    # ====== 计算整体状态 ======
+    all_nodes = pipeline["pipeline"]
+    error_count = sum(1 for v in all_nodes.values() if v["status"] == "error")
+    ok_count = sum(1 for v in all_nodes.values() if v["status"] == "ok")
+
+    if error_count > 0:
+        pipeline["overall"] = "error"
+    elif ok_count >= 3:
+        pipeline["overall"] = "healthy"
+    elif ok_count >= 1:
+        pipeline["overall"] = "degraded"
+    else:
+        pipeline["overall"] = "unknown"
+
+    total_elapsed = round((_time.time() - t0) * 1000)
+    pipeline["query_elapsed_ms"] = total_elapsed
+    logger.info(f"[PipelineStatus] overall={pipeline['overall']} ok={ok_count} err={error_count} ({total_elapsed}ms)")
+
+    return pipeline
+
+
+# 在现有的 get_realtime_quote 等接口中注入日志记录
+_original_get_realtime_quote = get_realtime_quote.__wrapped__ if hasattr(get_realtime_quote, '__wrapped__') else None
+
+
 @router.on_event("shutdown")
 async def shutdown_event():
     """应用关闭时清理资源"""

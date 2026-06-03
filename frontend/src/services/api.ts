@@ -169,13 +169,18 @@ export const monitorApi = {
     api.get('/api/monitor/news-quality'),
 
   getEmotionCoverage: () =>
-    api.get('/api/monitor/emotion-coverage'),
+    api.get('/api/monitor/emotion-coverag'),
 
   getReportsQuality: () =>
     api.get('/api/monitor/reports-quality'),
 
   getSystemHealth: () =>
     api.get('/api/monitor/system-health'),
+};
+
+export const pipelineApi = {
+  getStatus: () =>
+    api.get('/api/data/pipeline-status'),
 };
 
 export default api;
