@@ -20,22 +20,26 @@ alpha_vantage_provider = AlphaVantageProvider()
 async def get_realtime_quote(symbol: str):
     """
     获取股票实时行情
-    
+
     支持A股代码（如600519）和美股代码（如AAPL）
     自动识别市场并选择合适的数据源
     """
+    logger.info(f"[DataRoute] GET /api/data/realtime/{symbol}")
     try:
         data = None
         source = "unknown"
-        
+
         if _is_cn_stock(symbol):
+            logger.info(f"[DataRoute] 识别为A股 → AKShareProvider (mode={akshare_provider.mode})")
             data = await akshare_provider.get_realtime_quote(symbol)
             source = "akshare"
         else:
+            logger.info(f"[DataRoute] 识别为美股 → AlphaVantage")
             data = await alpha_vantage_provider.get_us_stock_quote(symbol)
             source = "alpha_vantage"
-        
+
         if data:
+            logger.info(f"[DataRoute] quote OK {symbol} source={source} price={data.get('price')}")
             return {
                 "success": True,
                 "data": data,
@@ -46,12 +50,13 @@ async def get_realtime_quote(symbol: str):
                 }
             }
         else:
+            logger.warning(f"[DataRoute] quote 返回空 {symbol}")
             raise HTTPException(status_code=404, detail=f"未找到{symbol}的行情数据")
-            
+
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"获取{symbol}实时行情失败: {e}")
+        logger.error(f"[DataRoute] 获取{symbol}实时行情失败: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"获取行情数据失败: {str(e)}")
 
 @router.get("/history/{symbol}")
@@ -268,51 +273,102 @@ def _is_us_stock(symbol: str) -> bool:
 
 @router.get("/debug/relay-test")
 async def debug_relay_test():
-    """调试端点：测试Render到Relay的连通性"""
+    """调试端点：测试Render到Relay的完整链路连通性"""
+    import time as _time
     import os
+    t_start = _time.time()
+
     result = {
+        "timestamp": datetime.now().isoformat(),
         "env": {
             "AKSHARE_RELAY_URL": os.environ.get("AKSHARE_RELAY_URL", "(not set)"),
             "AKSHARE_RELAY_KEY": os.environ.get("AKSHARE_RELAY_KEY", "(not set)")[:10] + "...",
             "HTTP_PROXY": os.environ.get("HTTP_PROXY", "(not set)"),
             "HTTPS_PROXY": os.environ.get("HTTPS_PROXY", "(not set)"),
+            "ALL_PROXY": os.environ.get("ALL_PROXY", "(not set)"),
         },
         "provider_mode": akshare_provider.mode,
         "provider_url": getattr(akshare_provider, 'relay_url', 'N/A'),
-        "relay_health": None,
-        "relay_quote_test": None,
+        "provider_headers": list(getattr(akshare_provider, '_relay_headers', {}).keys()),
+        "tests": {},
         "error": None,
     }
-    # 测试1: 直接requests调Relay health
+
+    # 测试1: 直接requests调Relay health（验证网络连通性）
     try:
         import requests
+        t0 = _time.time()
         s = requests.Session()
         s.trust_env = False
         s.headers.update({"ngrok-skip-browser-warning": "1"})
         url = akshare_provider.relay_url + "/health"
         r = s.get(url, headers={"X-Relay-Key": akshare_provider.relay_key}, timeout=20)
-        result["relay_health"] = {"status": r.status_code, "body": r.text[:200]}
+        elapsed = round((_time.time() - t0) * 1000)
+        body = r.json()
+        result["tests"]["health"] = {
+            "status": r.status_code,
+            "elapsed_ms": elapsed,
+            "ok": r.status_code == 200,
+            "relay_service": body.get("service"),
+            "relay_version": body.get("version"),
+            "data_source": body.get("data_source"),
+            "body_preview": str(body)[:200],
+        }
+        logger.info(f"[Debug] health test: HTTP {r.status_code} ({elapsed}ms)")
         s.close()
     except Exception as e:
+        elapsed = round((_time.time() - t0) * 1000)
+        result["tests"]["health"] = {"status": "ERROR", "elapsed_ms": elapsed, "error": str(e)[:200]}
         result["error"] = f"health check: {e}"
+        logger.error(f"[Debug] health test FAIL: {e}")
 
-    # 测试2: 调quote接口
+    # 测试2: 调quote接口（验证数据获取）
     try:
         import requests
+        t0 = _time.time()
         s = requests.Session()
         s.trust_env = False
         s.headers.update({"ngrok-skip-browser-warning": "1"})
         url = akshare_provider.relay_url + "/api/stock/quote"
         r = s.get(url, params={"symbol": "600519"},
                   headers={"X-Relay-Key": akshare_provider.relay_key}, timeout=20)
-        result["relay_quote_test"] = {"status": r.status_code, "body": r.text[:300]}
+        elapsed = round((_time.time() - t0) * 1000)
+        quote_data = r.json().get("data") if r.status_code == 200 else None
+        result["tests"]["quote_600519"] = {
+            "status": r.status_code,
+            "elapsed_ms": elapsed,
+            "ok": r.status_code == 200 and quote_data is not None,
+            "name": quote_data.get("name") if quote_data else None,
+            "price": quote_data.get("price") if quote_data else None,
+            "change_pct": quote_data.get("change_pct") if quote_data else None,
+            "source": quote_data.get("source") if quote_data else None,
+            "body_preview": r.text[:300],
+        }
+        logger.info(f"[Debug] quote test: HTTP {r.status_code} ({elapsed}ms) price={quote_data.get('price') if quote_data else 'N/A'}")
         s.close()
     except Exception as e:
-        if not result["error"]:
-            result["error"] = f"quote test: {e}"
-        else:
-            result["error"] += f" | quote: {e}"
+        elapsed = round((_time.time() - t0) * 1000)
+        result["tests"]["quote_600519"] = {"status": "ERROR", "elapsed_ms": elapsed, "error": str(e)[:200]}
+        err_msg = f"quote test: {e}"
+        result["error"] = (result["error"] + " | " + err_msg) if result["error"] else err_msg
+        logger.error(f"[Debug] quote test FAIL: {e}")
 
+    # 测试3: 通过Provider接口调用（完整链路验证）
+    try:
+        t0 = _time.time()
+        provider_result = await akshare_provider.health_check()
+        elapsed = round((_time.time() - t0) * 1000)
+        result["tests"]["provider_health"] = {
+            "elapsed_ms": elapsed,
+            **provider_result,
+        }
+        logger.info(f"[Debug] provider health: {provider_result.get('status')} ({elapsed}ms)")
+    except Exception as e:
+        result["tests"]["provider_health"] = {"error": str(e)[:200]}
+        logger.error(f"[Debug] provider health FAIL: {e}")
+
+    total_elapsed = round((_time.time() - t_start) * 1000)
+    result["total_elapsed_ms"] = total_elapsed
     return result
 
 @router.on_event("shutdown")

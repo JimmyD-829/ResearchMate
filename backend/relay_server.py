@@ -138,14 +138,24 @@ _SSL_CTX.verify_mode = ssl.CERT_NONE
 
 def _http_get(url: str) -> str:
     """通用HTTP GET（urllib）"""
+    import time as _time
+    t0 = _time.time()
     req = urllib.request.Request(url, headers=_HEADERS)
-    with urllib.request.urlopen(req, timeout=15, context=_SSL_CTX) as resp:
-        raw = resp.read()
-        # 尝试UTF-8，失败则GBK（国内API常用编码）
-        try:
-            return raw.decode("utf-8")
-        except UnicodeDecodeError:
-            return raw.decode("gbk", errors="replace")
+    try:
+        with urllib.request.urlopen(req, timeout=15, context=_SSL_CTX) as resp:
+            raw = resp.read()
+            elapsed_ms = round((_time.time() - t0) * 1000)
+            # 尝试UTF-8，失败则GBK（国内API常用编码）
+            try:
+                text = raw.decode("utf-8")
+            except UnicodeDecodeError:
+                text = raw.decode("gbk", errors="replace")
+            logger.debug(f"[Relay:HTTP] GET {url[:80]} → {len(text)}B ({elapsed_ms}ms)")
+            return text
+    except Exception as e:
+        elapsed_ms = round((_time.time() - t0) * 1000)
+        logger.error(f"[Relay:HTTP] GET FAIL {url[:80]} ({elapsed_ms}ms) → {type(e).__name__}: {e}")
+        raise
 
 
 # ==================== 腾讯财经数据源 ====================
@@ -218,6 +228,7 @@ def _fetch_tencent_quote(symbols: list) -> dict:
     """批量获取腾讯行情，返回 {symbol: data}"""
     codes = ",".join(_tencent_prefix(s) for s in symbols)
     url = f"https://qt.gtimg.cn/q={codes}"
+    logger.info(f"[Relay:Tencent] 批量查询 {len(symbols)}只: {symbols}")
     raw = _http_get(url)
 
     results = {}
@@ -228,6 +239,8 @@ def _fetch_tencent_quote(symbols: list) -> dict:
         d = _parse_tencent_line(line)
         if d and d["symbol"]:
             results[d["symbol"]] = d
+
+    logger.info(f"[Relay:Tencent] 查询完成 请求={len(symbols)} 返回={len(results)}")
     return results
 
 
@@ -400,10 +413,11 @@ import asyncio
 @app.get("/health")
 async def health_check():
     """健康检查 - 不需要认证"""
+    logger.info(f"[Relay:API] GET /health")
     return {
         "status": "ok",
         "service": "researchmate-a-stock-relay",
-        "version": "1.1.0",
+        "version": "1.2.0",
         "data_source": "tencent (qt.gtimg.cn)",
         "cache_ttl": CACHE_TTL,
         "time": datetime.now().isoformat()
@@ -416,11 +430,13 @@ async def get_stock_quote(
     x_relay_key: Optional[str] = Header(None),
 ):
     """获取单只A股实时行情"""
+    logger.info(f"[Relay:API] GET /api/stock/quote?symbol={symbol}")
     _auth_check(x_relay_key)
 
     cache_key = f"quote:{symbol}"
     cached = _cache_get(cache_key)
     if cached:
+        logger.info(f"[Relay:API] quote 命中缓存 {symbol} price={cached.get('price')}")
         return {"source": "cache", "data": cached}
 
     try:
@@ -429,12 +445,13 @@ async def get_stock_quote(
             raise HTTPException(status_code=404, detail=f"未找到股票 {symbol}")
 
         _cache_set(cache_key, result)
+        logger.info(f"[Relay:API] quote OK {symbol} name={result.get('name')} price={result.get('price')} source=tencent")
         return {"source": "tencent", "data": result}
 
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"获取{symbol}行情异常: {e}", exc_info=True)
+        logger.error(f"[Relay:API] 获取{symbol}行情异常: {e}", exc_info=True)
         raise HTTPException(status_code=502, detail=f"数据获取失败: {str(e)[:200]}")
 
 
@@ -445,29 +462,30 @@ async def get_stock_kline(
     adjust: str = Query("qfq", description="复权类型"),
     x_relay_key: Optional[str] = Header(None),
 ):
-    """获取历史K线数据（新浪财经接口）"""
+    """获取历史K线数据（腾讯财经接口）"""
+    logger.info(f"[Relay:API] GET /api/stock/kline?symbol={symbol}&days={days}")
     _auth_check(x_relay_key)
 
     cache_key = f"kline:{symbol}:{days}:{adjust}"
     cached = _cache_get(cache_key)
     if cached:
+        logger.info(f"[Relay:API] kline 命中缓存 {symbol} days={days}")
         return {"source": "cache", "data": cached}
 
     try:
         def _fetch_kline():
-            # 使用腾讯财经K线接口（web.ifzq.gtimg.cn）
             prefix = _tencent_prefix(symbol)
             start = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
             end = datetime.now().strftime("%Y-%m-%d")
             url = f"https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param={prefix},day,{start},{end},{days},qfq"
+            logger.debug(f"[Relay:Tencent] K线请求 {url[:100]}")
             raw = _http_get(url)
             data = _json.loads(raw)
 
-            # 提取K线数据
             stock_data = data.get("data", {}).get(prefix, {})
             klines = stock_data.get("qfqday", [])
             if not klines:
-                klines = stock_data.get("day", [])  # 尝试不复权
+                klines = stock_data.get("day", [])
 
             records = []
             for item in klines:
@@ -496,12 +514,13 @@ async def get_stock_kline(
         }
 
         _cache_set(cache_key, result)
+        logger.info(f"[Relay:API] kline OK {symbol} records={len(records)}")
         return {"source": "tencent", "data": result}
 
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"获取{symbol}K线异常: {e}")
+        logger.error(f"[Relay:API] 获取{symbol}K线异常: {e}", exc_info=True)
         raise HTTPException(status_code=502, detail=f"K线获取失败: {str(e)[:200]}")
 
 
@@ -511,11 +530,13 @@ async def get_stock_list(
     x_relay_key: Optional[str] = Header(None),
 ):
     """获取A股市值排名列表"""
+    logger.info(f"[Relay:API] GET /api/stock/list?top={top}")
     _auth_check(x_relay_key)
 
     cache_key = f"list:{top}"
     cached = _cache_get(cache_key)
     if cached:
+        logger.info(f"[Relay:API] list 命中缓存 top={top}")
         return {"source": "cache", "data": cached}
 
     try:
@@ -543,9 +564,11 @@ async def get_stock_list(
         result = await _run_sync(_fetch_list)
 
         _cache_set(cache_key, result)
+        logger.info(f"[Relay:API] list OK count={len(result)}")
         return {"source": "tencent", "data": result}
 
     except Exception as e:
+        logger.error(f"[Relay:API] 获取列表异常: {e}", exc_info=True)
         raise HTTPException(status_code=502, detail=str(e)[:200])
 
 
@@ -559,6 +582,7 @@ async def batch_quotes(
     x_relay_key: Optional[str] = Header(None),
 ):
     """批量查询多只股票行情（一次拉取全量再过滤）"""
+    logger.info(f"[Relay:API] POST /api/stock/batch symbols={req.symbols}")
     _auth_check(x_relay_key)
 
     try:
@@ -586,9 +610,11 @@ async def batch_quotes(
             return results, errors
 
         results, errors = await _run_sync(_fetch_batch)
+        logger.info(f"[Relay:API] batch OK requested={len(req.symbols)} got={len(results)} missing={len(errors)}")
         return {"source": "tencent", "data": results, "errors": errors}
 
     except Exception as e:
+        logger.error(f"[Relay:API] batch异常: {e}", exc_info=True)
         raise HTTPException(status_code=502, detail=str(e)[:200])
 
 
@@ -600,11 +626,12 @@ if __name__ == "__main__":
 
     print(f"""
 ╔════════════════════════════════════════════════════════╗
-║     ResearchMate A股数据代理中转服务 v1.0               ║
+║     ResearchMate A股数据代理中转服务 v1.2               ║
 ╠════════════════════════════════════════════════════════╣
 ║  监听地址: http://0.0.0.0:{args.port:<34} ║
 ║  认证密钥: {args.relay_key:<38} ║
 ║  缓存TTL:  {CACHE_TTL}秒{'':<41} ║
+║  数据源:  腾讯财经 (qt.gtimg.cn)                        ║
 ╠════════════════════════════════════════════════════════╣
 ║  接口:                                                ║
 ║    GET  /health                                       ║
@@ -614,6 +641,10 @@ if __name__ == "__main__":
 ║    POST /api/stock/batch                              ║
 ╚════════════════════════════════════════════════════════╝
 """)
+
+    logger.info(f"[Relay] 启动完成 port={args.port} key={args.relay_key[:8]}... cache_ttl={CACHE_TTL}s")
+    logger.info(f"[Relay] 数据源: 腾讯财经 (qt.gtimg.cn / web.ifzq.gtimg.cn)")
+    logger.info(f"[Relay] 代理环境变量已清除: HTTP_PROXY, HTTPS_PROXY 等")
 
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=args.port)

@@ -178,3 +178,144 @@ A: 可以。Relay本身无状态，天然支持并发请求。注意ngrok免费�
 
 ### Q: 国内云服务器最低配置？
 A: 1核1G内存足够（Relay很轻量，主要开销在AKShare库加载）。推荐配置：1核2G。
+
+---
+
+## 日志与排查
+
+### 日志体系
+
+整个数据获取链路有 **4层日志**，每层用不同前缀标识：
+
+```
+请求链路:
+  Render (data.py)  →  [DataRoute]     路由入口、市场识别
+       ↓
+  Render (provider) →  [RelayClient]   HTTP请求/响应详情（耗时、状态码、数据大小）
+       ↓
+  ngrok 隧道         →  (ngrok自身日志)
+       ↓
+  本地 (relay)      →  [Relay:API]     接口接收、缓存命中/未命中
+                       [Relay:Tencent] 腾讯财经API调用
+                       [Relay:HTTP]    底层HTTP请求（URL、响应大小、耗时）
+```
+
+### 各层日志格式说明
+
+#### [DataRoute] - Render路由层
+
+```
+[INFO] [DataRoute] GET /api/data/realtime/600519
+[INFO] [DataRoute] 识别为A股 → AKShareProvider (mode=proxy)
+[INFO] [DataRoute] quote OK 600519 source=akshare price=1281.91
+```
+
+- 标识请求入口和路由决策
+- 记录最终结果（成功/失败）
+
+#### [RelayClient] - Render代理客户端层
+
+```
+[INFO] [RelayClient] GET https://xxx.ngrok-free.dev/api/stock/quote?symbol=600519
+[INFO] [RelayClient] GET OK 200 (1234ms) source=tencent name=贵州茅台 price=1281.91 size=512B
+[WARNING] [RelayClient] GET 返回 502 (5000ms): <html>...
+[ERROR] [RelayClient] GET 失败 (20000ms): https://xxx... -> ConnectionError: ...
+```
+
+**关键字段**：
+| 字段 | 含义 |
+|------|------|
+| `GET/POST` | HTTP方法 |
+| `OK/返回/失败` | 成功/非2xx/异常 |
+| `(1234ms)` | 网络往返耗时 |
+| `source=` | Relay返回的数据源 |
+| `size=512B` | 响应体大小 |
+
+#### [Relay:API] - Relay服务端接口层
+
+```
+[INFO] [Relay:API] GET /api/stock/quote?symbol=600519
+[INFO] [Relay:API] quote 命中缓存 600519 price=1281.91        ← 缓存命中
+[INFO] [Relay:API] quote OK 6005 name=贵州茅台 price=1281.91  ← 新鲜数据
+[ERROR] [Relay:API] 获取600519行情异常: ...                   ← 数据源错误
+```
+
+#### [Relay:Tencent] / [Relay:HTTP] - Relay数据源层
+
+```
+[INFO] [Relay:Tencent] 批量查询 1只: ['600519']
+[DEBUG] [Relay:HTTP] GET https://qt.gtimg.cn/q=sh600519 → 256B (89ms)
+[INFO] [Relay:Tencent] 查询完成 请求=1 返回=1
+```
+
+### 排查流程
+
+当数据获取失败时，按以下顺序检查日志：
+
+**Step 1: 检查调试端点**
+
+访问：`https://researchmate-aznu.onrender.com/api/data/debug/relay-test`
+
+正常返回示例：
+```json
+{
+  "tests": {
+    "health": { "status": 200, "ok": true, "elapsed_ms": 450, "relay_service": "..." },
+    "quote_600519": { "status": 200, "ok": true, "price": 1281.91, "name": "贵州茅台" },
+    "provider_health": { "mode": "proxy", "status": "ok" }
+  },
+  "total_elapsed_ms": 1200,
+  "error": null
+}
+```
+
+**Step 2: 根据失败位置定位问题**
+
+| 失败环节 | 可能原因 | 解决方法 |
+|----------|---------|----------|
+| health 测试超时/连接被拒 | ngrok 未启动或地址变更 | 重启 ngrok，更新环境变量 |
+| health 返回非200 | Relay 服务异常 | 检查本地 relay_server.py 是否运行 |
+| quote 返回404 | 股票代码错误或腾讯无数据 | 换其他股票测试 |
+| quote 返回502 | 腾讯财经API不可达 | 检查国内网络是否正常 |
+| provider_health 失败 | requests 配置问题 | 检查 trust_env 设置 |
+
+**Step 3: 常见错误日志对照**
+
+```
+# 错误1: ngrok警告页拦截（缺少跳过头）
+[WARN]  [RelayClient] GET 返回 502 (3000ms): <html>Visit Site</html>
+→ 解决: 确认 _relay_headers 包含 "ngrok-skip-browser-warning": "1"
+
+# 错误2: 代理环境变量干扰（走了Render的代理出去）
+[ERROR] [RelayClient] GET 失败 (20000ms): ... ProxyError / ConnectTimeout
+→ 解决: 确认 Session.trust_env = False 已设置
+
+# 错误3: Relay服务未运行
+[ERROR] [RelayClient] GET 失败 (5000ms): Connection refused
+→ 解决: 启动 python relay_server.py + ngrok http 8899
+
+# 错误4: 认证密钥不匹配
+[WARN]  [RelayClient] GET 返回 401 (200ms): 无效的认证密钥
+→ 解决: 检查 AKSHARE_RELAY_KEY 与 RELAY_KEY 一致
+
+# 错误5: 腾讯财经API超时
+[ERROR] [Relay:HTTP] GET FAIL https://qt.gtimg.cn/... (15000ms) → timeout
+→ 解决: 检查国内网络连通性，可能需要重试
+
+# 错误6: 缓存过期但数据源不可用
+[INFO]  [Relay:API] quote 未缓存 600519 → 拉取新数据
+[ERROR] [Relay:API] 获取600519行情异常: ...
+→ 解决: 检查腾讯API是否临时故障，等待缓存TTL后自动恢复
+```
+
+### Render 日志查看方式
+
+在 Render Dashboard 中查看实时日志：
+
+1. 进入 **ResearchMate** 服务
+2. 点击 **Logs** 标签页
+3. 使用搜索过滤：
+   - `[RelayClient]` — 过滤代理请求日志
+   - `[DataRoute]` — 过滤路由层日志
+   - `[Debug]` — 过滤调试端点日志
+   - `ERROR` 或 `WARN` — 只看异常
