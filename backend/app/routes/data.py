@@ -286,21 +286,25 @@ async def debug_relay_test():
     # 测试1: 直接requests调Relay health
     try:
         import requests
+        s = requests.Session()
+        s.trust_env = False
         url = akshare_provider.relay_url + "/health"
-        r = requests.get(url, headers={"X-Relay-Key": akshare_provider.relay_key},
-                        timeout=20, trust_env=False)
+        r = s.get(url, headers={"X-Relay-Key": akshare_provider.relay_key}, timeout=20)
         result["relay_health"] = {"status": r.status_code, "body": r.text[:200]}
+        s.close()
     except Exception as e:
         result["error"] = f"health check: {e}"
 
     # 测试2: 调quote接口
     try:
         import requests
+        s = requests.Session()
+        s.trust_env = False
         url = akshare_provider.relay_url + "/api/stock/quote"
-        r = requests.get(url, params={"symbol": "600519"},
-                        headers={"X-Relay-Key": akshare_provider.relay_key},
-                        timeout=20, trust_env=False)
+        r = s.get(url, params={"symbol": "600519"},
+                  headers={"X-Relay-Key": akshare_provider.relay_key}, timeout=20)
         result["relay_quote_test"] = {"status": r.status_code, "body": r.text[:300]}
+        s.close()
     except Exception as e:
         if not result["error"]:
             result["error"] = f"quote test: {e}"

@@ -56,13 +56,19 @@ class AKShareProvider:
 
     # ==================== 代理模式：HTTP客户端 (requests) ====================
 
-    def _http_get(self, url: str, params: Dict = None) -> Optional[Dict]:
-        """同步GET请求Relay（在线程池中调用）
-        trust_env=False: 忽略Render的HTTP_PROXY等环境变量，直连ngrok"""
+    def _get_session(self):
+        """创建不读取代理环境变量的Session（兼容旧版requests）"""
         import requests
+        s = requests.Session()
+        s.trust_env = False  # 忽略HTTP_PROXY等，直连ngrok
+        s.headers.update(self._relay_headers)
+        return s
+
+    def _http_get(self, url: str, params: Dict = None) -> Optional[Dict]:
+        """同步GET请求Relay"""
+        session = self._get_session()
         try:
-            resp = requests.get(url, params=params, headers=self._relay_headers,
-                              timeout=20, trust_env=False)
+            resp = session.get(url, params=params, timeout=20)
             if resp.status_code == 200:
                 return resp.json().get("data")
             elif resp.status_code == 404:
@@ -73,13 +79,14 @@ class AKShareProvider:
         except Exception as e:
             logger.error(f"Relay GET失败: {url} -> {e}")
             return None
+        finally:
+            session.close()
 
     def _http_post(self, url: str, json_body: Dict) -> Optional[Dict]:
-        """同步POST请求Relay（在线程池中调用）"""
-        import requests
+        """同步POST请求Relay"""
+        session = self._get_session()
         try:
-            resp = requests.post(url, json=json_body, headers=self._relay_headers,
-                               timeout=20, trust_env=False)
+            resp = session.post(url, json=json_body, timeout=20)
             if resp.status_code == 200:
                 return resp.json().get("data")
             else:
@@ -88,6 +95,8 @@ class AKShareProvider:
         except Exception as e:
             logger.error(f"Relay POST失败: {url} -> {e}")
             return None
+        finally:
+            session.close()
 
     async def _relay_get(self, path: str, params: Dict = None) -> Optional[Dict]:
         """向Relay发送GET请求（异步包装）"""
