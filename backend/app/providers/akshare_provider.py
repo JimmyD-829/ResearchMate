@@ -16,8 +16,6 @@ import logging
 from typing import Optional, List, Dict
 from datetime import datetime
 
-import aiohttp
-
 logger = logging.getLogger(__name__)
 
 
@@ -49,65 +47,62 @@ class AKShareProvider:
             self._ak = None
             logger.info(f"🔗 AKShareProvider 启用[直连模式]")
 
-        # HTTP会话（代理模式复用）
-        self._session: Optional[aiohttp.ClientSession] = None
+        # 代理模式使用requests库（aiohttp在Render上连ngrok不稳定）
+        self._relay_headers = {
+            "X-Relay-Key": self.relay_key,
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "application/json",
+        }
 
-    # ==================== 代理模式：HTTP客户端 ====================
+    # ==================== 代理模式：HTTP客户端 (requests) ====================
 
-    def _get_session(self) -> aiohttp.ClientSession:
-        if self._session is None or self._session.closed:
-            import aiohttp
-            # 关键：添加浏览器级User-Agent，否则ngrok免费版会拦截并断开连接
-            self._session = aiohttp.ClientSession(
-                timeout=aiohttp.ClientTimeout(total=20, connect=10),
-                headers={
-                    "X-Relay-Key": self.relay_key,
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                    "Accept": "application/json, text/plain, */*",
-                },
-                # 跳过自动设置的Content-Type（GET请求不需要）
-                skip_auto_headers=["Content-Type"],
-            )
-        return self._session
+    def _http_get(self, url: str, params: Dict = None) -> Optional[Dict]:
+        """同步GET请求Relay（在线程池中调用）"""
+        import requests
+        try:
+            resp = requests.get(url, params=params, headers=self._relay_headers, timeout=20)
+            if resp.status_code == 200:
+                return resp.json().get("data")
+            elif resp.status_code == 404:
+                return None
+            else:
+                logger.warning(f"Relay GET返回 {resp.status_code}: {resp.text[:200]}")
+                return None
+        except Exception as e:
+            logger.error(f"Relay GET失败: {url} -> {e}")
+            return None
+
+    def _http_post(self, url: str, json_body: Dict) -> Optional[Dict]:
+        """同步POST请求Relay（在线程池中调用）"""
+        import requests
+        try:
+            resp = requests.post(url, json=json_body, headers=self._relay_headers, timeout=20)
+            if resp.status_code == 200:
+                return resp.json().get("data")
+            else:
+                logger.warning(f"Relay POST返回 {resp.status_code}: {resp.text[:200]}")
+                return None
+        except Exception as e:
+            logger.error(f"Relay POST失败: {url} -> {e}")
+            return None
 
     async def _relay_get(self, path: str, params: Dict = None) -> Optional[Dict]:
-        """向Relay发送GET请求"""
+        """向Relay发送GET请求（异步包装）"""
         url = f"{self.relay_url}{path}"
-        try:
-            session = self._get_session()
-            async with session.get(url, params=params) as resp:
-                if resp.status == 200:
-                    body = await resp.json()
-                    return body.get("data")
-                elif resp.status == 404:
-                    return None
-                else:
-                    text = await resp.text()
-                    logger.warning(f"⚠️ Relay返回 {resp.status}: {text[:200]}")
-                    return None
-        except asyncio.TimeoutError:
-            logger.error(f"❌ Relay请求超时: {url}")
-            return None
-        except Exception as e:
-            logger.error(f"❌ Relay请求失败: {url} → {e}")
-            return None
+        loop = asyncio.get_event_loop()
+        import concurrent.futures
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+            future = pool.submit(self._http_get, url, params)
+            return await loop.run_in_executor(None, lambda: future.result())
 
     async def _relay_post(self, path: str, json_body: Dict) -> Optional[Dict]:
-        """向Relay发送POST请求"""
+        """向Relay发送POST请求（异步包装）"""
         url = f"{self.relay_url}{path}"
-        try:
-            session = self._get_session()
-            async with session.post(url, json=json_body) as resp:
-                if resp.status == 200:
-                    body = await resp.json()
-                    return body.get("data")
-                else:
-                    text = await resp.text()
-                    logger.warning(f"⚠️ Relay POST返回 {resp.status}: {text[:200]}")
-                    return None
-        except Exception as e:
-            logger.error(f"❌ Relay POST失败: {url} → {e}")
-            return None
+        loop = asyncio.get_event_loop()
+        import concurrent.futures
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+            future = pool.submit(self._http_post, url, json_body)
+            return await loop.run_in_executor(None, lambda: future.result())
 
     # ==================== 直连模式：本地AKShare库 ====================
 
