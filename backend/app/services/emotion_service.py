@@ -99,12 +99,34 @@ class EmotionService:
         # 尝试2: 使用新闻情绪分析（原有逻辑）
         try:
             news_result = EmotionService._get_emotion_from_news(db, company_name)
-            if news_result:
-                logger.info(f"⚠️ {company_name}: 使用新闻情绪分析 (非实时)")
-                return news_result
-        except Exception as e:
-            logger.warning(f"新闻情绪分析失败: {e}")
-        
+        @staticmethod
+   def _get_emotion_from_news(db: Session, company_name: str) -> Optional[Dict]:
+    """从新闻文章获取情绪数据"""
+    # ... 原有代码 ...
+    
+    # ✅ 新增：检查是否有有效的新闻文章
+    article_count = db.query(NewsArticle)\
+        .filter(NewsArticle.company_name == company_name)\
+        .count()
+
+    valid_score_count = db.query(NewsArticle)\
+        .filter(NewsArticle.company_name == company_name)\
+        .filter(NewsArticle.emotion_score.isnot(None))\
+        .count()
+
+    # ✅ 新增：如果数据不足，返回None让系统使用fallback
+    if article_count < 3 or valid_score_count < 2:
+        logger.warning(f"⚠️ {company_name}: 新闻数据不足")
+        return None
+
+    # ... 计算分数 ...
+    
+    # ✅ 新增：如果所有分数都是0，返回None
+    if today_score == 0 and last_7d_avg == 0 and last_30d_avg == 0:
+        logger.warning(f"⚠️ {company_name}: 所有情绪分数为0")
+        return None
+    
+    # ... 返回结果 ...
         # 尝试3: Fallback到模拟数据
         logger.warning(f"❌ {company_name}: 所有数据源都不可用，使用Fallback模拟数据")
         fallback_result = EmotionService._get_fallback_emotion(company_name)

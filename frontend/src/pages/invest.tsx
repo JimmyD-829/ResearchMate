@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { investApi } from '../services/api';
+import Layout from '../components/Layout';
 
 // 动态导入K线组件（避免SSR问题）
 const KLineChart = dynamic(() => import('../components/KLineChart'), {
@@ -59,14 +60,23 @@ interface OverviewData {
 
 // ── 热门股票列表 ──
 const HOT_STOCKS = [
-  { code: '600519', name: '贵州茅台' },
-  { code: '000858', name: '五粮液' },
-  { code: '300750', name: '宁德时代' },
-  { code: '601318', name: '中国平安' },
-  { code: '600036', name: '招商银行' },
-  { code: '000333', name: '美的集团' },
-  { code: '002594', name: '比亚迪' },
-  { code: '601012', name: '隆基绿能' },
+  // A股
+  { code: '600519', name: '贵州茅台', market: 'CN' },
+  { code: '000858', name: '五粮液', market: 'CN' },
+  { code: '300750', name: '宁德时代', market: 'CN' },
+  { code: '601318', name: '中国平安', market: 'CN' },
+  { code: '600036', name: '招商银行', market: 'CN' },
+  { code: '000333', name: '美的集团', market: 'CN' },
+  { code: '002594', name: '比亚迪', market: 'CN' },
+  { code: '601012', name: '隆基绿能', market: 'CN' },
+  // 美股
+  { code: 'AAPL', name: 'Apple 苹果', market: 'US' },
+  { code: 'TSLA', name: 'Tesla 特斯拉', market: 'US' },
+  { code: 'MSFT', name: 'Microsoft 微软', market: 'US' },
+  { code: 'NVDA', name: 'NVIDIA 英伟达', market: 'US' },
+  { code: 'GOOGL', name: 'Google 谷歌', market: 'US' },
+  { code: 'AMZN', name: 'Amazon 亚马逊', market: 'US' },
+  { code: 'META', name: 'Meta 平台', market: 'US' },
 ];
 
 // ── 信号颜色映射 ──
@@ -125,6 +135,29 @@ export default function InvestPage() {
     date: string; open: number; high: number; low: number; close: number; volume: number;
   }>>([]);
 
+  // 搜索相关状态
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  // 当前选中的股票信息
+  const currentStock = HOT_STOCKS.find(s => s.code === symbol);
+  const isUSStock = currentStock?.market === 'US';
+
+  // 过滤搜索结果
+  const filteredStocks = HOT_STOCKS.filter(s =>
+    s.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    s.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // 选择股票
+  const selectStock = (code: string) => {
+    setSymbol(code);
+    setSearchQuery('');
+    setShowSearchResults(false);
+    fetchData(code);
+  };
+
   // 获取数据
   const fetchData = useCallback(async (sym: string) => {
     setLoading(true);
@@ -172,6 +205,7 @@ export default function InvestPage() {
   const quote = data?.quote;
 
   return (
+    <Layout>
     <div className="min-h-screen bg-slate-950 text-white p-4 md:p-6">
       {/* ══ Header ══ */}
       <div className="max-w-7xl mx-auto mb-6">
@@ -183,20 +217,98 @@ export default function InvestPage() {
             <p className="text-sm text-slate-500 mt-1">中长期投资分析面板 — A股 & 美股</p>
           </div>
 
-          {/* 选股器 */}
-          <div className="flex items-center gap-2">
-            <select
-              value={symbol}
-              onChange={(e) => setSymbol(e.target.value)}
-              className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm font-mono
-                         focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            >
-              {HOT_STOCKS.map((s) => (
-                <option key={s.code} value={s.code}>
-                  {s.code} · {s.name}
-                </option>
-              ))}
-            </select>
+          {/* 搜索选股器 */}
+          <div className="flex items-center gap-2 relative">
+            <div className="relative">
+              <input
+                ref={searchRef}
+                type="text"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setShowSearchResults(e.target.value.length > 0);
+                }}
+                onFocus={() => setShowSearchResults(searchQuery.length > 0 || true)}
+                onBlur={() => setTimeout(() => setShowSearchResults(false), 200)}
+                placeholder="搜索股票代码或名称..."
+                className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 pl-9 text-sm font-mono w-64
+                           focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-600"
+              />
+              <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+
+              {/* 搜索结果下拉 */}
+              {showSearchResults && (
+                <div className="absolute top-full mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg shadow-xl z-50 max-h-64 overflow-y-auto">
+                  {filteredStocks.length > 0 ? (
+                    <>
+                      {/* A股分组 */}
+                      {filteredStocks.filter(s => s.market === 'CN').length > 0 && (
+                        <>
+                          <div className="px-3 py-1.5 text-[10px] font-semibold text-slate-500 uppercase tracking-wider bg-slate-800/50 sticky top-0">
+                            A股
+                          </div>
+                          {filteredStocks.filter(s => s.market === 'CN').map((s) => (
+                            <button
+                              key={s.code}
+                              onMouseDown={() => selectStock(s.code)}
+                              className={`w-full px-3 py-2 text-left text-sm hover:bg-indigo-500/10 transition-colors flex items-center justify-between ${
+                                symbol === s.code ? 'bg-indigo-500/20 text-indigo-300' : 'text-slate-300'
+                              }`}
+                            >
+                              <span>
+                                <span className="font-mono font-bold">{s.code}</span>
+                                <span className="ml-2 text-slate-400">{s.name}</span>
+                              </span>
+                            </button>
+                          ))}
+                        </>
+                      )}
+                      {/* 美股分组 */}
+                      {filteredStocks.filter(s => s.market === 'US').length > 0 && (
+                        <>
+                          <div className="px-3 py-1.5 text-[10px] font-semibold text-slate-500 uppercase tracking-wider bg-slate-800/50 sticky top-0">
+                            美股 (US)
+                          </div>
+                          {filteredStocks.filter(s => s.market === 'US').map((s) => (
+                            <button
+                              key={s.code}
+                              onMouseDown={() => selectStock(s.code)}
+                              className={`w-full px-3 py-2 text-left text-sm hover:bg-indigo-500/10 transition-colors flex items-center justify-between ${
+                                symbol === s.code ? 'bg-indigo-500/20 text-indigo-300' : 'text-slate-300'
+                              }`}
+                            >
+                              <span>
+                                <span className="font-mono font-bold">{s.code}</span>
+                                <span className="ml-2 text-slate-400">{s.name}</span>
+                              </span>
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded ${s.market === 'US' ? 'bg-emerald-500/15 text-emerald-400' : ''}`}>
+                                US
+                              </span>
+                            </button>
+                          ))}
+                        </>
+                      )}
+                    </>
+                  ) : (
+                    <div className="px-3 py-4 text-center text-sm text-slate-500">未找到匹配的股票</div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* 当前选中标签 */}
+            {currentStock && (
+              <span className={`text-xs px-2 py-1 rounded-md font-mono flex items-center gap-1 ${
+                isUSStock ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20'
+                         : 'bg-blue-500/15 text-blue-400 border border-blue-500/20'
+              }`}>
+                {symbol} · {currentStock.name}
+                <span className="text-[9px] opacity-60">{isUSStock ? '美股' : 'A股'}</span>
+              </span>
+            )}
+
             <button
               onClick={() => fetchData(symbol)}
               disabled={loading}
@@ -474,6 +586,7 @@ export default function InvestPage() {
         </div>
       </div>
     </div>
+    </Layout>
   );
 }
 
