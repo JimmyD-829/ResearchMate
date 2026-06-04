@@ -178,7 +178,7 @@ export default function InvestPage() {
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-              INVESTMENT ANALYSIS
+              投资分析
             </h1>
             <p className="text-sm text-slate-500 mt-1">中长期投资分析面板 — A股 & 美股</p>
           </div>
