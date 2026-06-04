@@ -87,6 +87,16 @@ export default function Layout({ children }: LayoutProps) {
               >
                 数据监控
               </Link>
+              <Link
+                href="/invest"
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  isActive('/invest')
+                    ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400'
+                    : 'text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
+              >
+                投资分析
+              </Link>
 
               <ThemeToggle />
               

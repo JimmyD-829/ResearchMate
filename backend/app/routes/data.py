@@ -558,6 +558,151 @@ async def get_pipeline_status():
     return pipeline
 
 
+@router.get("/indicators/{symbol}")
+async def get_technical_indicators(
+    symbol: str,
+    period: str = Query("daily", description="K线周期: daily/weekly/monthly"),
+    days: int = Query(120, ge=30, le=365, description="K线天数，至少30天"),
+    adjust: str = Query("qfq", description="复权方式: qfq/hfq/"),
+):
+    """
+    技术指标综合接口 — 供投资分析面板使用
+
+    一次性返回全部技术指标计算结果：
+    - MA (5/10/20/60) + 金叉死叉信号
+    - MACD (12,26,9) + DIF/DEA/柱状图
+    - RSI (14) + 超买超卖判断
+    - KDJ (9,3,3) + 交叉信号
+    - BOLL (20,2) + 带宽分析
+    - 风险指标（区间收益/最大回撤/夏普比率/波动率）
+    """
+    import time as _time
+    t0 = _time.time()
+    logger.info(f"[DataRoute] GET /api/data/indicators/{symbol} period={period} days={days}")
+
+    try:
+        if not _is_cn_stock(symbol):
+            raise HTTPException(status_code=400, detail="技术指标目前仅支持A股")
+
+        # 1. 获取K线数据
+        df = await akshare_provider.get_history_kline(
+            symbol=symbol, period=period, days=days, adjust=adjust
+        )
+
+        if df is None or df.empty:
+            raise HTTPException(status_code=404, detail=f"未找到{symbol}的历史数据")
+
+        # 2. 转换为记录列表（从旧到新排列）
+        df_sorted = df.sort_values('日期', ascending=True)
+        records = df_sorted.to_dict('records')
+
+        # 3. 注入symbol信息
+        for r in records:
+            r['symbol'] = symbol
+
+        # 4. 计算全部技术指标
+        from ..services.indicator_service import indicator_service
+        result = indicator_service.calculate_all(records)
+
+        if "error" in result:
+            raise HTTPException(status_code=422, detail=result["error"])
+
+        # 5. 补充元信息
+        elapsed = round((_time.time() - t0) * 1000)
+        result["metadata"] = {
+            "source": "akshare",
+            "symbol": symbol,
+            "period": period,
+            "adjust": adjust,
+            "kline_count": len(records),
+            "calculate_elapsed_ms": elapsed,
+            "update_time": datetime.now().isoformat(),
+        }
+
+        logger.info(f"[DataRoute] indicators OK {symbol} {len(records)}bars ({elapsed}ms)")
+        return {"success": True, "data": result}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[DataRoute] 指标计算失败 {symbol}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"指标计算失败: {str(e)}")
+
+
+@router.get("/investment-overview/{symbol}")
+async def get_investment_overview(symbol: str):
+    """
+    投资概览聚合接口 — 供投资分析面板使用
+
+    聚合：实时行情 + 技术指标 + 基本面 + 风险指标
+    前端一次请求即可获得面板所需的全部数据
+    """
+    import time as _time
+    import asyncio
+    t0 = _time.time()
+    logger.info(f"[DataRoute] GET /api/data/investment-overview/{symbol}")
+
+    try:
+        # 并行获取：实时行情 + K线数据 + 公司概览
+        tasks = {}
+        if _is_cn_stock(symbol):
+            tasks["quote"] = akshare_provider.get_realtime_quote(symbol)
+            tasks["kline"] = akshare_provider.get_history_kline(symbol=symbol, days=120, adjust="qfq")
+            # 公司基本面（如果有）
+            try:
+                tasks["company"] = akshare_provider.get_company_info(symbol)
+            except Exception:
+                pass
+        else:
+            tasks["quote"] = alpha_vantage_provider.get_us_stock_quote(symbol)
+
+        results = await asyncio.gather(*list(tasks.values()), return_exceptions=True)
+        task_keys = list(tasks.keys())
+
+        overview = {
+            "symbol": symbol,
+            "market": "CN" if _is_cn_stock(symbol) else "US",
+            "timestamp": datetime.now().isoformat(),
+            "quote": None,
+            "indicators": None,
+            "company": None,
+            "risk": None,
+        }
+
+        for i, key in enumerate(task_keys):
+            if isinstance(results[i], Exception):
+                logger.warning(f"[InvestmentOverview] {key} failed: {results[i]}")
+                continue
+            data = results[i]
+
+            if key == "quote":
+                overview["quote"] = data
+            elif key == "kline":
+                if data is not None and not data.empty:
+                    from ..services.indicator_service import indicator_service
+                    df_sorted = data.sort_values('日期', ascending=True)
+                    records = df_sorted.to_dict('records')
+                    for r in records:
+                        r['symbol'] = symbol
+                    ind_result = indicator_service.calculate_all(records)
+                    overview["indicators"] = ind_result
+                    overview["risk"] = ind_result.get("risk")
+            elif key == "company":
+                overview["company"] = data
+
+        elapsed = round((_time.time() - t0) * 1000)
+        overview["elapsed_ms"] = elapsed
+        logger.info(f"[DataRoute] investment-overview {symbol} ({elapsed}ms)")
+
+        return {"success": True, "data": overview}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[DataRoute] investment-overview 失败 {symbol}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"获取投资概览失败: {str(e)}")
+
+
 # 在现有的 get_realtime_quote 等接口中注入日志记录
 _original_get_realtime_quote = get_realtime_quote.__wrapped__ if hasattr(get_realtime_quote, '__wrapped__') else None
 

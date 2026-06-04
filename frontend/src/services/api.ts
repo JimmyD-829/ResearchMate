@@ -193,4 +193,11 @@ export const pipelineApi = {
     api.get('/api/data/pipeline-status'),
 };
 
+export const investApi = {
+  getOverview: (symbol: string) =>
+    api.get(`/api/data/investment-overview/${symbol}`),
+  getIndicators: (symbol: string, params?: { period?: string; days?: number }) =>
+    api.get(`/api/data/indicators/${symbol}`, { params }),
+};
+
 export default api;

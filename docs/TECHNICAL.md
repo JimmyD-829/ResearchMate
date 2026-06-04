@@ -1,8 +1,8 @@
 # ResearchMate 技术文档
 
-**版本:** v2.0  
-**最后更新:** 2026-05-26  
-**技术栈:** Next.js 14 + FastAPI + SQLite/PostgreSQL
+**版本:** v2.1  
+**最后更新:** 2026-06-03  
+**技术栈:** Next.js 14 + FastAPI + SQLite/PostgreSQL + lightweight-charts
 
 ---
 
@@ -784,6 +784,89 @@ python run_scheduler.py status     # 查看状态
 
 ---
 
+### 5.6 技术指标计算引擎 (indicator_service.py) ⭐ v2.1 新增
+
+**功能:** 纯 Python 实现的技术指标计算服务，支持 MA/MACD/RSI/KDJ/BOLL 五大核心指标及风险分析。
+
+**设计原则:**
+- **零第三方依赖**: 不依赖 TA-Lib/NumPy/Pandas，纯标准库实现
+- **类型安全**: 完整的 Type Hints 注解
+- **容错处理**: 数据不足时返回 `None` 而非报错
+
+**核心算法:**
+
+| 指标 | 公式 | 参数 |
+|------|------|------|
+| **MA** (简单移动平均) | `SMA = Σ(close[i]) / N` | period: 5/10/20/60 |
+| **MACD** | `DIF = EMA(12) - EMA(26)`<br>`DEA = EMA(DIF, 9)`<br>`Histogram = (DIF - DEA) × 2` | short=12, long=26, signal=9 |
+| **RSI** | `RS = avg_gain / avg_loss`<br>`RSI = 100 - 100/(1+RS)` | period=14 |
+| **KDJ** | `RSV = (C - L_n)/(H_n - L_n) × 100`<br>`K = SMA(RSV, 3)`<br>`D = SMA(K, 3)`<br>`J = 3K - 2D` | n=9, m1=3, m2=3 |
+| **BOLL** | `MID = MA(20)`<br>`UPPER = MID + 2σ`<br>`LOWER = MID - 2σ` | period=20, std_mult=2 |
+
+**关键代码结构:**
+```python
+class IndicatorService:
+    """技术指标计算引擎 — 纯 Python 实现，无第三方依赖"""
+
+    @staticmethod
+    def ma(close_prices: List[float], period: int) -> List[Optional[float]]:
+        """简单移动平均线 SMA"""
+        # ...
+
+    @staticmethod
+    def macd(close_prices: List[float], short_period=12,
+             long_period=26, signal_period=9) -> Dict[str, List[Optional[float]]]:
+        """MACD 指标"""
+        # ...
+
+    @staticmethod
+    def rsi(close_prices: List[float], period=14) -> List[Optional[float]]:
+        """相对强弱指数 RSI"""
+        # ...
+
+    @staticmethod
+    def kdj(high_prices, low_prices, close_prices,
+            n=9, m1=3, m2=3) -> Dict[str, List[Optional[float]]]:
+        """随机指标 KDJ"""
+        # ...
+
+    @staticmethod
+    def boll(close_prices, period=20, std_mult=2) -> Dict:
+        """布林带 BOLL"""
+        # ...
+
+    @staticmethod
+    def calculate_risk_metrics(records: List[Dict]) -> Dict:
+        """风险指标计算（最大回撤/夏普比率/波动率等）"""
+        # ...
+
+    @staticmethod
+    def calculate_all(records: List[Dict]) -> Dict[str, Any]:
+        """综合计算全部技术指标 — 入口方法"""
+        # ...
+```
+
+**信号检测规则:**
+```python
+def detect_signals(indicators: Dict) -> Dict:
+    """自动检测交易信号"""
+    return {
+        "ma": {
+            "signal": "golden_cross" if ma5 > ma20 and prev_ma5 <= prev_ma20 else ...,
+            "description": "MA5上穿MA20，短期趋势转强"
+        },
+        "macd": {
+            "signal": "bullish" if dif > dea and histogram > 0 else ...,
+        },
+        "rsi": {
+            "signal": "overbought" if rsi > 70 else "oversold" if rsi < 30 else ...,
+        },
+        # KDJ, BOLL 类似...
+    }
+```
+
+---
+
 ## 6. API 接口文档
 
 ### 6.1 认证相关
@@ -1050,6 +1133,72 @@ python run_scheduler.py status     # 查看状态
   ]
 }
 ```
+
+---
+
+### 6.6 投资分析面板 ⭐ v2.1 新增
+
+#### GET /api/data/investment-overview/{symbol}
+投资概览聚合接口 — 单次请求返回行情+K线+公司概览。
+
+**路径参数:**
+- `symbol`: 股票代码 (如 `600519`, `000001`)
+
+**响应:** `200 OK`
+```json
+{
+  "success": true,
+  "data": {
+    "symbol": "600519",
+    "market": "CN",
+    "quote": {
+      "price": 1685.50,
+      "change": 15.30,
+      "change_pct": 0.92,
+      "volume": 24580,
+      "turnover": "4.14亿"
+    },
+    "indicators": {
+      "indicators": {
+        "ma": { "ma5": 1678.2, "ma10": 1665.8, "ma20": 1652.3, "ma60": 1638.5 },
+        "macd": { "dif": 12.35, "dea": 8.72, "histogram": 7.26 },
+        "rsi": { "value": 58.3 },
+        "kdj": { "k": 65.2, "d": 58.7, "j": 78.2 },
+        "boll": { "upper": 1720.5, "mid": 1680.2, "lower": 1640.0 }
+      },
+      "signals": {
+        "ma": { "signal": "golden_cross", "description": "MA5上穿MA20" },
+        "macd": { "signal": "bullish", "histogram_trend": "increasing" },
+        "rsi": { "signal": "neutral" }
+      },
+      "risk": {
+        "max_drawdown_pct": -18.5,
+        "sharpe_ratio": 1.25,
+        "annualized_volatility": 28.3
+      }
+    },
+    "company": {
+      "name": "贵州茅台",
+      "industry": "白酒",
+      "pe": 32.5,
+      "pb": 9.8
+    }
+  }
+}
+```
+
+#### GET /api/data/indicators/{symbol}?period=daily&days=120&adjust=qfq
+技术指标详情接口 — 返回完整序列数据。
+
+**路径参数:**
+- `symbol`: 股票代码
+
+**查询参数:**
+| 参数 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `period` | string | `daily` | K线周期: daily/weekly/monthly |
+| `days` | int | `120` | K线天数 (30-365) |
+| `adjust` | string | `qfq` | 复权方式: qfq(前复权)/hfq(后复权) |
 
 ---
 

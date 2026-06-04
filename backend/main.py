@@ -1,4 +1,4 @@
-﻿from fastapi import FastAPI
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import os
@@ -35,6 +35,7 @@ async def startup_event():
         
         from app.routes.auth import router as auth_router
         from app.routes.reports import router as reports_router
+        from app.routes.reports_v2 import router as reports_v2_router  # V2专业版
         from app.routes.news import router as news_router
         from app.routes.emotion import router as emotion_router
         from app.routes.analysis import router as analysis_router
@@ -44,14 +45,15 @@ async def startup_event():
         logger.info("All route modules imported")
 
         app.include_router(auth_router)
-        app.include_router(reports_router)
+        app.include_router(reports_router)  # 旧版兼容
+        app.include_router(reports_v2_router)  # V2新版（推荐使用）
         app.include_router(news_router)
         app.include_router(emotion_router)
         app.include_router(analysis_router)
         app.include_router(monitor_router)
         app.include_router(data_router)
 
-        logger.info("All routers registered")
+        logger.info("All routers registered (including V2 reports API)")
         
         Base.metadata.create_all(bind=engine)
         logger.info("Database tables created/verified")
