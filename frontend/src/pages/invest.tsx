@@ -164,14 +164,15 @@ export default function InvestPage() {
     setError('');
     try {
       const res = await investApi.getOverview(sym) as any;
-      const overview = res?.data || res;
-
+      const wrapped = res?.data || res;
+      // 解包 API 响应 {success, data: {quote, indicators, risk}} → 直接使用内层数据
+      const overview = wrapped?.data || wrapped;
       setData(overview);
 
       // 提取K线数据（从indicators的metadata或单独获取）
       if (overview?.indicators) {
-        // 需要从history接口单独拿K线数据用于图表
-        const historyRes = await fetch(`/api/data/history/${sym}?days=120&adjust=qfq`);
+        // 需要从history接口单独拿K线数据用于图表（使用完整后端URL，避免静态部署时相对路径问题）
+        const historyRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://researchmate-aznu.onrender.com'}/api/data/history/${sym}?days=120&adjust=qfq`);
         const histData = await historyRes.json();
         if (histData?.success && histData.data) {
           const records: any[] = Array.isArray(histData.data) ? histData.data : [];
@@ -467,12 +468,12 @@ export default function InvestPage() {
 
             {quote ? (
               <div className="space-y-3">
-                <FundRow label="PE(TTM)" value={quote.pe} highlight />
-                <FundRow label="PB" value={quote.pb} />
+                <FundRow label="PE(TTM)" value={quote.pe_ratio} highlight />
+                <FundRow label="PB" value={quote.pb_ratio} />
                 <FundRow label="总市值" value={quote.market_cap} />
-                <FundRow label="流通市值" value={quote.float_market_cap} />
-                <FundRow label="52周最高" value={quote.high_52w} />
-                <FundRow label="52周最低" value={quote.low_52w} />
+                <FundRow label="流通市值" value={quote.float_market_cap || quote.circulating_mv} />
+                <FundRow label="52周最高" value={quote.high_52w || quote.year_high} />
+                <FundRow label="52周最低" value={quote.low_52w || quote.year_low} />
               </div>
             ) : (
               <div className="text-slate-600 text-sm text-center py-4">暂无基本面数据</div>
@@ -483,7 +484,7 @@ export default function InvestPage() {
               <div className="mt-4 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
                 <p className="text-[11px] text-slate-600 leading-relaxed">
                   {(() => {
-                    const pe = parseFloat(quote.pe || '0');
+                    const pe = parseFloat(quote.pe_ratio || quote.pe || '0');
                     if (pe > 0 && pe < 15) return `PE=${pe.toFixed(1)}，估值偏低，具备一定安全边际。`;
                     if (pe >= 15 && pe < 30) return `PE=${pe.toFixed(1)}，估值处于合理区间。`;
                     if (pe >= 30 && pe < 50) return `PE=${pe.toFixed(1)}，估值偏高，需关注业绩支撑。`;
