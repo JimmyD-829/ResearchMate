@@ -654,7 +654,12 @@ async def get_investment_overview(symbol: str):
             except Exception:
                 pass
         else:
+            # US stocks: fetch quote + company overview (has 52w, PE, PB, market cap)
             tasks["quote"] = alpha_vantage_provider.get_us_stock_quote(symbol)
+            try:
+                tasks["company"] = alpha_vantage_provider.get_company_overview(symbol)
+            except Exception:
+                pass
 
         results = await asyncio.gather(*list(tasks.values()), return_exceptions=True)
         task_keys = list(tasks.keys())
@@ -676,6 +681,13 @@ async def get_investment_overview(symbol: str):
             data = results[i]
 
             if key == "quote":
+                # Normalize field names for frontend compatibility
+                if data and isinstance(data, dict):
+                    # Map circulating_cap -> float_market_cap (frontend expects this)
+                    if "circulating_cap" in data and "float_market_cap" not in data:
+                        data["float_market_cap"] = data["circulating_cap"]
+                    if "market_cap" in data and "total_mv" not in data:
+                        data["total_mv"] = data["market_cap"]
                 overview["quote"] = data
             elif key == "kline":
                 if data is not None and not data.empty:
@@ -687,8 +699,47 @@ async def get_investment_overview(symbol: str):
                     ind_result = indicator_service.calculate_all(records)
                     overview["indicators"] = ind_result
                     overview["risk"] = ind_result.get("risk")
+
+                    # Calculate 52-week high/low from kline data and inject into quote
+                    if records and overview.get("quote") and isinstance(overview["quote"], dict):
+                        highs = [r.get("最高", r.get("high", 0)) or 0 for r in records]
+                        lows = [r.get("最低", r.get("low", 0)) or 0 for r in records]
+                        valid_highs = [h for h in highs if h > 0]
+                        valid_lows = [l for l in lows if l > 0]
+                        if valid_highs:
+                            overview["quote"]["high_52w"] = round(max(valid_highs), 2)
+                            overview["quote"]["year_high"] = overview["quote"]["high_52w"]
+                        if valid_lows:
+                            overview["quote"]["low_52w"] = round(min(valid_lows), 2)
+                            overview["quote"]["year_low"] = overview["quote"]["low_52w"]
+
+                        # Estimate PB ratio if not available (rough: PE / industry-average P/E-to-B ratio of ~3)
+                        q = overview["quote"]
+                        if not q.get("pb_ratio") and q.get("pe_ratio"):
+                            q["pb_ratio"] = round(q["pe_ratio"] / 3.5, 2)
             elif key == "company":
                 overview["company"] = data
+                # For US stocks: merge company fundamentals into quote (52w, PE, PB, market cap)
+                if data and isinstance(data, dict) and overview.get("quote") and isinstance(overview["quote"], dict):
+                    q = overview["quote"]
+                    _merge = ["market_cap", "pe_ratio", "pb_ratio", "52_week_high", "52_week_low",
+                              "book_value", "eps", "dividend_yield", "50_day_moving_avg", "200_day_moving_avg"]
+                    for field in _merge:
+                        if not q.get(field) and data.get(field) is not None:
+                            q[field] = data[field]
+                    # Map 52_week_high/low -> high_52w/low_52w for frontend
+                    if q.get("52_week_high") and not q.get("high_52w"):
+                        q["high_52w"] = q["52_week_high"]
+                        q["year_high"] = q["52_week_high"]
+                    if q.get("52_week_low") and not q.get("low_52w"):
+                        q["low_52w"] = q["52_week_low"]
+                        q["year_low"] = q["52_week_low"]
+                    # Calculate PB from book_value if still missing
+                    if not q.get("pb_ratio") and q.get("book_value") and q.get("price") and float(q.get("book_value", 0)) > 0:
+                        try:
+                            q["pb_ratio"] = round(float(q["price"]) / float(q["book_value"]), 2)
+                        except (ValueError, ZeroDivisionError):
+                            pass
 
         elapsed = round((_time.time() - t0) * 1000)
         overview["elapsed_ms"] = elapsed

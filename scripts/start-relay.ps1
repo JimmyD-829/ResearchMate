@@ -1,61 +1,73 @@
-# ResearchMate 数据管道 - 本地启动脚本
-# 用法: .\start-relay.ps1
-# 功能: 一键启动 Relay Server + Cloudflare Tunnel
-
+# ResearchMate Relay + Cloudflare Tunnel - Local Start Script
+# Usage: .\start-relay.ps1
 $ErrorActionPreference = "Stop"
 
 Write-Host ""
-Write-Host "╔══════════════════════════════════════════════════════╗" -ForegroundColor Cyan
-Write-Host "║   ResearchMate 数据管道 - 本地启动脚本               ║" -ForegroundColor Cyan
-Write-Host "║   Relay Server + Cloudflare Tunnel 一键启动          ║" -ForegroundColor Cyan
-Write-Host "╚══════════════════════════════════════════════════════╝" -ForegroundColor Cyan
+Write-Host "============================================" -ForegroundColor Cyan
+Write-Host "  ResearchMate Data Pipeline - Start Script " -ForegroundColor Cyan
+Write-Host "  Relay Server + Cloudflare Tunnel           " -ForegroundColor Cyan
+Write-Host "============================================" -ForegroundColor Cyan
 Write-Host ""
 
-# ── 配置 ──
+# -- Config --
 $RELAY_PORT = 8899
 $RELAY_KEY  = "researchmate-relay-2026"
 $SCRIPT_DIR = Split-Path -Parent $MyInvocation.MyCommand.Path
 $BACKEND_DIR = Join-Path $SCRIPT_DIR "..\backend"
 $TUNNEL_URL_FILE = Join-Path $env:TEMP "researchmate_tunnel_url.txt"
 
-# 清理旧文件
 if (Test-Path $TUNNEL_URL_FILE) { Remove-Item $TUNNEL_URL_FILE -Force }
 
-# ── 检查依赖 ──
-Write-Host "[检查] cloudflared..." -NoNewline
+# -- Check dependencies --
+Write-Host "[Check] cloudflared..." -NoNewline
 $cf = Get-Command cloudflared -ErrorAction SilentlyContinue
 if (-not $cf) {
-    Write-Host " ❌ 未安装" -ForegroundColor Red
-    Write-Host "  安装: winget install Cloudflare.cloudflared" -ForegroundColor Yellow
+    # Try common install locations
+    $cfPaths = @(
+        "$env:LOCALAPPDATA\Microsoft\WinGet\Packages\Cloudflare.cloudflared_Microsoft.Winget.Source_8wekyb3d8bbwe\cloudflared.exe",
+        "$env:LOCALAPPDATA\cloudflared\cloudflared.exe",
+        "C:\Program Files\cloudflared\cloudflared.exe"
+    )
+    foreach ($p in $cfPaths) {
+        if (Test-Path $p) {
+            $cf = [PSCustomObject]@{ Source = $p }
+            break
+        }
+    }
+}
+if (-not $cf) {
+    Write-Host " NOT FOUND" -ForegroundColor Red
+    Write-Host "  Install: winget install Cloudflare.cloudflared" -ForegroundColor Yellow
     exit 1
 }
-Write-Host " ✅ $($cf.Version)" -ForegroundColor Green
+$CF_BINARY = $cf.Source
+Write-Host " OK ($CF_BINARY)" -ForegroundColor Green
 
-Write-Host "[检查] python..." -NoNewline
+Write-Host "[Check] python..." -NoNewline
 $py = Get-Command python -ErrorAction SilentlyContinue
 if (-not $py) {
-    Write-Host " ❌ 未找到" -ForegroundColor Red
+    Write-Host " NOT FOUND" -ForegroundColor Red
     exit 1
 }
-Write-Host " ✅" -ForegroundColor Green
+Write-Host " OK" -ForegroundColor Green
 
-# ── Step 1: 启动 Relay Server ──
+# -- Step 1: Start Relay Server --
 Write-Host ""
-Write-Host "[Step 1/3] 启动 Relay Server (端口 $RELAY_PORT)..." -ForegroundColor Yellow
+Write-Host "[Step 1/3] Starting Relay Server (port $RELAY_PORT)..." -ForegroundColor Yellow
 
 $relayProc = Start-Process -FilePath "python" -ArgumentList `
-    "$($BACKEND_DIR -replace '\','/')/relay_server.py", "--port", $RELAY_PORT, "--relay-key", $RELAY_KEY `
+    "$($BACKEND_DIR -replace '\\','/')/relay_server.py", "--port", $RELAY_PORT, "--relay-key", $RELAY_KEY `
     -WindowStyle Minimized -PassThru
 
-# 等待就绪
-Write-Host "         等待启动..." -NoNewline
+Write-Host "         Waiting for startup..." -NoNewline
 $maxWait = 15
+$started = $false
 for ($i = 0; $i -lt $maxWait; $i++) {
     Start-Sleep -Seconds 1
     try {
         $r = Invoke-RestMethod -Uri "http://127.0.0.1:$RELAY_PORT/health" -TimeoutSec 2 -ErrorAction Stop
         if ($r.status -eq "ok") {
-            Write-Host " ✅ 已就绪" -ForegroundColor Green
+            $started = $true
             break
         }
     } catch {
@@ -63,24 +75,30 @@ for ($i = 0; $i -lt $maxWait; $i++) {
     }
 }
 
-# 验证
-try {
-    $r = Invoke-RestMethod -Uri "http://127.0.0.1:$RELAY_PORT/health" -TimeoutSec 3
-} catch {
-    Write-Host "`n[错误] Relay Server 启动失败: $_" -ForegroundColor Red
-    if ($relayProc) { Stop-Process -Id $relayProc.Id -Force -ErrorAction SilentlyContinue }
-    exit 1
+if (-not $started) {
+    # Try one more time with longer timeout
+    try {
+        $r = Invoke-RestMethod -Uri "http://127.0.0.1:$RELAY_PORT/health" -TimeoutSec 5
+        $started = $true
+    } catch {
+        Write-Host ""
+        Write-Host "[ERROR] Relay Server failed to start: $_" -ForegroundColor Red
+        if ($relayProc) { Stop-Process -Id $relayProc.Id -Force -ErrorAction SilentlyContinue }
+        exit 1
+    }
 }
 
-# ── Step 2: 启动 Cloudflare Tunnel ──
+Write-Host " OK (http://127.0.0.1:$RELAY_PORT)" -ForegroundColor Green
+
+# -- Step 2: Start Cloudflare Tunnel --
 Write-Host ""
-Write-Host "[Step 2/3] 启动 Cloudflare Tunnel..." -ForegroundColor Yellow
+Write-Host "[Step 2/3] Starting Cloudflare Tunnel..." -ForegroundColor Yellow
 
 $cfArgs = @("tunnel", "--url", "http://127.0.0.1:$RELAY_PORT")
-$cfProc = Start-Process -FilePath "cloudflared" -ArgumentList $cfArgs `
+$cfProc = Start-Process -FilePath $CF_BINARY -ArgumentList $cfArgs `
     -WindowStyle Minimized -PassThru -RedirectStandardError $TUNNEL_URL_FILE
 
-Write-Host "         等待隧道建立..." -NoNewline
+Write-Host "         Waiting for tunnel..." -NoNewline
 
 $tunnelUrl = $null
 for ($i = 0; $i -lt 45; $i++) {
@@ -96,42 +114,54 @@ for ($i = 0; $i -lt 45; $i++) {
 }
 
 if (-not $tunnelUrl) {
-    Write-Host " ⚠️ 无法自动获取，请查看 Cloudflare 窗口" -ForegroundColor Yellow
-    $tunnelUrl = "(查看 Cloudflare 窗口)"
+    Write-Host " WARNING: Could not auto-detect URL, check Cloudflare window" -ForegroundColor Yellow
+    $tunnelUrl = "(check Cloudflare window)"
 } else {
-    Write-Host " ✅" -ForegroundColor Green
+    Write-Host " OK" -ForegroundColor Green
+
+    # -- Auto-save & copy tunnel URL --
+    $URL_FILE = "$env:USERPROFILE\researchmate-tunnel-url.txt"
+    $tunnelUrl | Out-File -FilePath $URL_FILE -Encoding UTF8
+    Write-Host "" -NoNewline
+
+    try {
+        Set-Clipboard -Value $tunnelUrl
+        Write-Host "[AUTO] Tunnel URL copied to clipboard!" -ForegroundColor Magenta
+    } catch {
+        Write-Host "[INFO] Tunnel URL saved to: $URL_FILE" -ForegroundColor Cyan
+    }
+    Write-Host "[INFO] Tunnel URL saved to: $URL_FILE" -ForegroundColor Cyan
 }
 
-# ── Step 3: 显示结果 ──
+# -- Step 3: Show result --
 Write-Host ""
-Write-Host "╔══════════════════════════════════════════════════════╗" -ForegroundColor Green
-Write-Host "║                    启动完成！                         ║" -ForegroundColor Green
-Write-Host "╠══════════════════════════════════════════════════════╣" -ForegroundColor Green
-Write-Host ("║  Relay Server:  http://127.0.0.1:{0,-24}║" -f "$RELAY_PORT ") -ForegroundColor White
-Write-Host ("║  Tunnel URL:    {0,-36}║" -f $tunnelUrl) -ForegroundColor White
-Write-Host "╠══════════════════════════════════════════════════════╣" -ForegroundColor Green
-Write-Host "║  请更新 Render AKSHARE_RELAY_URL 为上方地址           ║" -ForegroundColor Yellow
-Write-Host "╚══════════════════════════════════════════════════════╝" -ForegroundColor Green
+Write-Host "============================================" -ForegroundColor Green
+Write-Host "            STARTUP COMPLETE!              " -ForegroundColor Green
+Write-Host "============================================" -ForegroundColor Green
+Write-Host ("  Relay Server:  http://127.0.0.1:{0}" -f $RELAY_PORT) -ForegroundColor White
+Write-Host ("  Tunnel URL:    {0}" -f $tunnelUrl) -ForegroundColor White
+Write-Host "--------------------------------------------" -ForegroundColor Green
+Write-Host "  Update Render AKSHARE_RELAY_URL above     " -ForegroundColor Yellow
+Write-Host "  Or use saved file: ~\researchmate-tunnel-url.txt" -ForegroundColor Yellow
+Write-Host "============================================" -ForegroundColor Green
 Write-Host ""
+Write-Host "Press Ctrl+C to stop all services..." -ForegroundColor DarkGray
 
-# ── 保持运行 + 清理处理 ──
-Write-Host "按 Ctrl+C 停止所有服务..." -ForegroundColor DarkGray
-
+# -- Keep running + cleanup on exit --
 try {
-    # 持续运行直到用户中断
     while ($true) {
         Start-Sleep -Seconds 3600
     }
 } finally {
-    Write-Host "`n[清理] 正在停止服务..." -ForegroundColor Yellow
+    Write-Host "`n[Cleanup] Stopping services..." -ForegroundColor Yellow
     if ($relayProc -and -not $relayProc.HasExited) {
         Stop-Process -Id $relayProc.Id -Force -ErrorAction SilentlyContinue
-        Write-Host "       Relay Server 已停止" -ForegroundColor Gray
+        Write-Host "       Relay Server stopped" -ForegroundColor Gray
     }
     if ($cfProc -and -not $cfProc.HasExited) {
         Stop-Process -Id $cfProc.Id -Force -ErrorAction SilentlyContinue
-        Write-Host "       Cloudflare Tunnel 已停止" -ForegroundColor Gray
+        Write-Host "       Cloudflare Tunnel stopped" -ForegroundColor Gray
     }
     if (Test-Path $TUNNEL_URL_FILE) { Remove-Item $TUNNEL_URL_FILE -Force }
-    Write-Host "[完成] 所有服务已停止" -ForegroundColor Green
+    Write-Host "[Done] All services stopped" -ForegroundColor Green
 }
